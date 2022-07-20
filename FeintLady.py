@@ -22,6 +22,11 @@ def parse_args():
     parser.add_argument("--use_acc", action = 'store_true', default=False, 
                         help = "use acc as objective in FeintLady, default: false (use loss as objective)")
     parser.add_argument("--ptq_mode", type = int, default='0', help = "0: adaround, 1: adaround, 2: brecq")
+    parser.add_argument("--l1",type=float,default=1e-3,help = "binary regularization coefficient")
+    parser.add_argument("--l2",type=float,default=1e-5,help = "(search from this value to 0)harware cost regularization coefficient")
+    parser.add_argument("--nl1",type=int,default=3,help = "number of points to interpolate l1 search")
+    parser.add_argument("--nl2",type=int,default=50,help = "number of points to interpolate l2 search")
+    
     return parser.parse_args()
 
 args = parse_args()
@@ -91,7 +96,7 @@ enable_calibration(mqb_model)
 for img,label in calib_data:
     mqb_model(img.cuda()) 
     
-if args.ptq_mode is not 0:
+if not args.ptq_mode == 0:
     ptq_rec_config = {'pattern':'layer' if args.ptq_mode == 1 else 'block', 
                       'scale_lr': 4.0e-5, 'warm_up':0.2, 'weight':0.01,
                       'max_count':20000,'b_range':[20,2],'keep_gpu': True,
@@ -295,6 +300,46 @@ def evaluate_decision(v,printInfo=False):
     
     return res,reduced_size/8/1024/1024
 
-v = optimize(n_iteration=5000,lr=1e-3,beta=[20,2],lambda1=1e-3,lambda2=1e-8,naive=False)
+v = optimize(n_iteration=5000,lr=1e-3,beta=[20,2],lambda1=1e-3,lambda2=0,naive=False)
 evaluate_decision(v,printInfo=True)
- 
+# fix lambda1 to 1e-3
+# search lambda2 from 1e-5 to 1e-10
+# each HP (lambda2) try 5 runs
+
+lambda1s = np.logspace(np.log10(args.l1),-1,args.nl1) #lambda1=1e-3,n=5000,lr=1e-3,beta=[20,2] for resnet20 on cifar10
+lambda2s = np.logspace(np.log10(args.l2),-10,args.nl2) #lambda1=1e-1,n=5000,lr=1e-3,beta=[20,2] for resnet20 on cifar100
+sample_size = 5
+naive_loss,naive_size = [],[]
+feint_loss,feint_size = [],[]
+config = []
+for lambda1 in lambda1s:
+    for lambda2 in lambda2s:
+        print(f'lambda1 {lambda1} lambda2 {lambda2}')
+        for repeat in range(sample_size):
+            v = optimize(n_iteration=5000,lr=1e-3,beta=[20,2],lambda1=lambda1,lambda2=lambda2,naive=True)
+            perf,size = evaluate_decision(v)
+            naive_loss.append(perf)
+            naive_size.append(size)
+
+            v = optimize(n_iteration=5000,lr=1e-3,beta=[20,2],lambda1=lambda1,lambda2=lambda2,naive=False)
+            perf,size = evaluate_decision(v)
+            feint_loss.append(perf)
+            feint_size.append(size)
+            config.append((lambda1,lambda2))
+
+naive_size = np.array(naive_size)
+feint_size = np.array(feint_size)
+naive_acc = [naive_loss[i]['mean_acc'] for i in range(len(naive_loss))]
+feint_acc = [feint_loss[i]['mean_acc'] for i in range(len(feint_loss))]
+
+with open(f'result_{args.dataset}_{args.model}_mode{args.ptq_mode}_useacc{args.use_acc}.pkl','wb') as f:
+    pickle.dump({'naive_size':naive_size,'naive_acc':naive_acc,
+                 'feint_size':feint_size,'feint_acc':feint_acc,'config':config},f)
+    
+plt.scatter(naive_size,naive_acc,color='red',alpha=0.5,label='Inter-Layer Depedency Unaware Optimization')
+plt.scatter(feint_size,feint_acc,color='blue',alpha=0.5,label='FeintLady Optimization')
+plt.xlabel('Hardware cost')
+plt.ylabel('Performance')
+plt.legend()
+plt.savefig(f'{args.dataset}_{args.model}_mode{args.ptq_mode}_useacc{args.use_acc}.pdf',
+            transparent=True, bbox_inches='tight', pad_inches=0)
