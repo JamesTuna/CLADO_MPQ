@@ -11,6 +11,7 @@ from mqbench.prepare_by_platform import BackendType           # contain various 
 from mqbench.utils.state import enable_calibration            # turn on calibration algorithm, determine scale, zero_point, etc.
 from mqbench.utils.state import enable_quantization           # turn on actually quantization, like FP32 -> INT8
 from mqbench.utils.state import disable_all           # turn on actually quantization, like FP32 -> INT8
+from mqbench.advanced_ptq import ptq_reconstruction
 from copy import deepcopy
 import argparse
 from collections import OrderedDict
@@ -101,7 +102,7 @@ if not args.ptq_mode == 0:
                       'scale_lr': 4.0e-5, 'warm_up':0.2, 'weight':0.01,
                       'max_count':20000,'b_range':[20,2],'keep_gpu': True,
                       'round_mode':'learned_hard_sigmoid','prob':1}
-    class dotdict():
+    class dotdict(dict):
         __getattr__ = dict.get
         __setattr__ = dict.__setitem__
         __delattr__ = dict.__delitem__
