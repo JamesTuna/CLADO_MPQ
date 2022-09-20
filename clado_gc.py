@@ -107,10 +107,8 @@ for b in MPQ_scheme:
         'extra_qconfig_dict': {
             'w_observer': 'MSEObserver',                              # custom weight observer
             'a_observer': 'EMAMSEObserver',                              # custom activation observer
-#             'w_fakequantize': 'FixedFakeQuantize',                    # custom weight fake quantize function
-#             'a_fakequantize': 'FixedFakeQuantize',                    # custom activation fake quantize function
-            'w_fakequantize': 'AdaRoundFakeQuantize',                    # custom weight fake quantize function
-            'a_fakequantize': 'QDropFakeQuantize',                    # custom activation fake quantize function
+            'w_fakequantize': 'AdaRoundFakeQuantize' if adv_ptq else 'FixedFakeQuantize',
+            'a_fakequantize': 'QDropFakeQuantize' if adv_ptq else 'FixedFakeQuantize',
             'w_qscheme': {
                 'bit': b,                                             # custom bitwidth for weight,
                 'symmetry': True,                                    # custom whether quant is symmetric for weight,
