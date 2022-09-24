@@ -25,19 +25,19 @@ import torchvision as tv
 torch.manual_seed(0)
 np.random.seed(0)
 
-MPQ_scheme = (2,4,8)
+MPQ_scheme = (4,8)
 modelname = 'resnet50'
 
-for adv_ptq in (False,True):
+for adv_ptq in (False,):
     
     dataset = 'I1K'
     KL=False
     mn = dataset.lower()+ '_' + modelname
     ds = I1K(data_dir=os.path.join('/tools/d-matrix/ml/data', "imagenet"),
-             train_batch_size=32,test_batch_size=32,cuda=True)
+             train_batch_size=64,test_batch_size=64,cuda=True)
     model = eval("tv.models." + modelname)(pretrained=True).cuda()
-    ds.train.num_workers = 4
-    ds.val.num_workers = 4
+    ds.train.num_workers = 8
+    ds.val.num_workers = 8
 
     train = ds.train
     test = ds.val
@@ -94,7 +94,7 @@ for adv_ptq in (False,True):
             stacked_tensor.append(img)
             calib_data.append((img,label))
             calib_fp_output.append(model(img.cuda()))
-            if i == 32:
+            if i == 64:
                 break
     # PTQ
     # configuration
@@ -283,7 +283,7 @@ for adv_ptq in (False,True):
         for w_bits in MPQ_scheme:
             aw_scheme.append((a_bits,w_bits))
 
-    aw_scheme = ((8,2),(8,4),(8,8))
+    aw_scheme = ((8,4),(8,8))
 
     for KL in (False,True):
         for n in layer_input_map:
@@ -326,7 +326,7 @@ for adv_ptq in (False,True):
         with open('gc_tmp.pkl','wb') as f:
             pickle.dump({'Ltilde':hm,'layer_index':layer_index},f)
 
-        saveas = 'CachedGrad_'
+        saveas = 'CachedGrad4k_'
         saveas += 'QDROP' if adv_ptq else ''
         saveas += str(aw_scheme)
         saveas += mn

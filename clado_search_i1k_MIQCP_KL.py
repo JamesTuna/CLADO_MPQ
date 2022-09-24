@@ -25,7 +25,7 @@ modelname = 'resnet50'
 adv_ptq = False
 dataset = 'I1K'
 mn = dataset.lower()+ '_' + modelname
-cached_pkl_name = 'CachedGrad_((8, 2), (8, 4), (8, 8))i1k_resnet50.pkl'
+cached_pkl_name = 'CachedGrad_((8, 2), (8, 4), (8, 8))i1k_resnet50KL.pkl'
 ds = I1K(data_dir=os.path.join('/tools/d-matrix/ml/data', "imagenet"),
          train_batch_size=32,test_batch_size=64,cuda=True)
 model = eval("tv.models." + modelname)(pretrained=True).cuda()

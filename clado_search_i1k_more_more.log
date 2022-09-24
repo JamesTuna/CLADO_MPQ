@@ -201,15 +201,15 @@ dbg node_to_quantize_output
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([0.0780], device='cuda:0'), 'top5': tensor([0.5000], device='cuda:0'), 'loss': tensor(6.9105, device='cuda:0'), 'time': 122.83503603935242}
+{'top1': tensor([0.0780], device='cuda:0'), 'top5': tensor([0.5000], device='cuda:0'), 'loss': tensor(6.9105, device='cuda:0'), 'time': 125.07594704627991}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([44.4021], device='cuda:0'), 'top5': tensor([69.3261], device='cuda:0'), 'loss': tensor(2.6122, device='cuda:0'), 'time': 99.96546626091003}
+{'top1': tensor([44.4021], device='cuda:0'), 'top5': tensor([69.3261], device='cuda:0'), 'loss': tensor(2.6122, device='cuda:0'), 'time': 101.18874001502991}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([75.9601], device='cuda:0'), 'top5': tensor([92.7021], device='cuda:0'), 'loss': tensor(0.9644, device='cuda:0'), 'time': 99.51558661460876}
+{'top1': tensor([75.9601], device='cuda:0'), 'top5': tensor([92.7021], device='cuda:0'), 'loss': tensor(0.9644, device='cuda:0'), 'time': 102.02370834350586}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 input of  conv1  is  x_post_act_fake_quantizer
 input of  layer1.0.conv1  is  maxpool_post_act_fake_quantizer
