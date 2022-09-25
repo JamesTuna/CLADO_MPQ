@@ -584,7 +584,7 @@ def MIQCP_optimize(cached_grad,layer_bitops,layer_size,
 clado_res,naive_res = [],[]
 
 for size_bound in range(10,22,300):
-    print(f'Set size bound to {MB}')
+    print(f'Set size bound to {size_bound} MB')
     
     v1 = MIQCP_optimize(cached_grad=cached_grad,
                    layer_bitops=layer_bitops,

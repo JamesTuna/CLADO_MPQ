@@ -273,12 +273,6 @@ def perturb_loss(perturb_scheme,ref_metric=ref_metric,
             
     return perturbed_loss
 
-import pickle
-# with open('generala248w248_c100resnet56_calib','rb') as f:
-# with open('CachedGrad_QDROP(2, 4, 8)cifar100_resnet56.pkl','rb') as f:
-with open('CachedGrad_((8, 2), (8, 4), (8, 8))i1k_resnet50.pkl','rb') as f:
-    hm = pickle.load(f)
-    
 index2layerscheme = [None for i in range(hm['Ltilde'].shape[0])]
 
 for name in hm['layer_index']:
@@ -583,8 +577,8 @@ def MIQCP_optimize(cached_grad,layer_bitops,layer_size,
 
 clado_res,naive_res = [],[]
 
-for size_bound in range(10,22,300):
-    print(f'Set size bound to {MB}')
+for size_bound in np.linspace(6,22,400):
+    print(f'Set size bound to {size_bound} MB')
     
     v1 = MIQCP_optimize(cached_grad=cached_grad,
                    layer_bitops=layer_bitops,
@@ -592,13 +586,13 @@ for size_bound in range(10,22,300):
                    schemes_per_layer=len(aw_scheme),
                    bitops_bound=np.inf,size_bound=size_bound,
                    naive=False)
-    v1 = torch.Tensor(v.value)
+    v1 = torch.Tensor(v1.value)
     
     perf_test,size,bitops,MPQ_decision = evaluate_decision(v1)
     
     perf_calib,_,_,_ = evaluate_decision(v1,test=calib_data)
     
-    clado_res.append((perf_test,pref_calib,size,bitops,MPQ_decision))
+    clado_res.append((perf_test,perf_calib,size,bitops,MPQ_decision))
     
     v2 = MIQCP_optimize(cached_grad=cached_grad,
                    layer_bitops=layer_bitops,
@@ -606,13 +600,13 @@ for size_bound in range(10,22,300):
                    schemes_per_layer=len(aw_scheme),
                    bitops_bound=np.inf,size_bound=size_bound,
                    naive=True)
-    v2 = torch.Tensor(v.value)
+    v2 = torch.Tensor(v2.value)
     
     perf_test,size,bitops,MPQ_decision = evaluate_decision(v2)
     
     perf_calib,_,_,_ = evaluate_decision(v2,test=calib_data)
     
-    naive_res.append((perf_test,pref_calib,size,bitops,MPQ_decision))
+    naive_res.append((perf_test,perf_calib,size,bitops,MPQ_decision))
     
 with open(f'{mn}_{cached_pkl_name[:-4]}.pkl','wb') as f:
     pickle.dump({'clado_res':clado_res,'naive_res':naive_res},f)

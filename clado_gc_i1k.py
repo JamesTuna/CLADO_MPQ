@@ -31,7 +31,6 @@ modelname = 'resnet50'
 for adv_ptq in (False,):
     
     dataset = 'I1K'
-    KL=False
     mn = dataset.lower()+ '_' + modelname
     ds = I1K(data_dir=os.path.join('/tools/d-matrix/ml/data', "imagenet"),
              train_batch_size=64,test_batch_size=64,cuda=True)
@@ -94,7 +93,7 @@ for adv_ptq in (False,):
             stacked_tensor.append(img)
             calib_data.append((img,label))
             calib_fp_output.append(model(img.cuda()))
-            if i == 64:
+            if i == 16:
                 break
     # PTQ
     # configuration
@@ -159,7 +158,7 @@ for adv_ptq in (False,):
                     'pot_scale': False,                                   # custom whether scale is power of two for weight.
                 },
                 'a_qscheme': {
-                    'bit': 8,                                             # custom bitwidth for activation,
+                    'bit': b,                                             # custom bitwidth for activation,
                     'symmetry': False,                                    # custom whether quant is symmetric for activation,
                     'per_channel': False,                                  # custom whether quant is per-channel or per-tensor for activation,
                     'pot_scale': False,                                   # custom whether scale is power of two for activation.
@@ -283,9 +282,9 @@ for adv_ptq in (False,):
         for w_bits in MPQ_scheme:
             aw_scheme.append((a_bits,w_bits))
 
-    aw_scheme = ((8,4),(8,8))
+    aw_scheme = ((4,4),(4,8),(8,4),(8,8))
 
-    for KL in (False,True):
+    for KL in (True,):
         for n in layer_input_map:
             for m in layer_input_map:
                 for naw in aw_scheme:
@@ -295,14 +294,14 @@ for adv_ptq in (False,):
                                 if naw == maw:
 
                                     p = perturb_loss({n:naw},ref_metric,calib_data,KL=KL)
-                                    print(f'perturb layer {n} to A{naw[0]}W{naw[1]} p={p}')
+                                    print(f'KL {KL} perturb layer {n} to A{naw[0]}W{naw[1]} p={p}')
                                 else:
                                     p = 0
 
                             else:
 
                                 p = perturb_loss({n:naw,m:maw},ref_metric,calib_data,KL=KL)
-                                print(f'perturb layer {n} to A{naw[0]}W{naw[1]} and layer {m} to A{maw[0]}W{maw[1]} p={p}')
+                                print(f'KL {KL} perturb layer {n} to A{naw[0]}W{naw[1]} and layer {m} to A{maw[0]}W{maw[1]} p={p}')
 
                             cached[(n,m,naw,maw)] = cached[(m,n,maw,naw)] = p
 
@@ -326,7 +325,7 @@ for adv_ptq in (False,):
         with open('gc_tmp.pkl','wb') as f:
             pickle.dump({'Ltilde':hm,'layer_index':layer_index},f)
 
-        saveas = 'CachedGrad4k_'
+        saveas = 'CachedGrad_'
         saveas += 'QDROP' if adv_ptq else ''
         saveas += str(aw_scheme)
         saveas += mn

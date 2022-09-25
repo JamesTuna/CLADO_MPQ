@@ -1,2 +1,6 @@
 /homes/zdeng/.conda/envs/mltls/lib/python3.9/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 6, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
   warnings.warn(_create_warning_msg(
+Traceback (most recent call last):
+  File "/homes/zdeng/sum2022/CLADO_MPQ/clado_search_i1k_MIQCP_noKL.py", line 38, in <module>
+    with open(cached_pkl_name,'rb') as f:
+FileNotFoundError: [Errno 2] No such file or directory: 'CachedGrad4k_((8, 2), (8, 4), (8, 8))i1k_resnet50.pkl'
