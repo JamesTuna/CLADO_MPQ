@@ -6,6 +6,10 @@
 - Hyperparameter tuning is no longer needed in second phase: optimization
 - We formulate the optimization as a Mixed Integer Quadratic Constraint Programming (MIQCP)
 - We use the CVXPY solver to solve the MIQCP, PSD approximation of ```cached_grad``` was neccessary for MIQCP and was found empirically useful on CIFAR100 sanity check
+- Issue of cvxpy MIQCP solver: depends on pyscipopt, may run forever for some unknown reasons on CIFAR100 experiments. 
+- pyscipopt=3.5.0: no problem for ```cached_grad``` = CachedGrad_a248w248c100_resnet56.pkl; stuck for ```cached_grad``` = CachedGrad_a248w248c100_resnet56KL.pkl
+- pyscipopt=3.1.0: stuck for ```cached_grad``` = CachedGrad_a248w248c100_resnet56.pkl
+
 ### 1. CLADO_XXX.ipynb
 - binaryWeight: only consider binary quantization (quantize or not) for weights (tested on CIFAR10/100, superiority over naive method confirmed)
 - multiWeight: multi-scheme weight quantization (e.g., 2,4,8 bits) for weights (tested on CIFAR10, superiority over naive method confirmed)
