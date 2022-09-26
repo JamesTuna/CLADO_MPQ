@@ -283,7 +283,7 @@ for adv_ptq in (False,):
     aw_scheme = ((4,4),(4,8),(8,4),(8,8))
     #aw_scheme = ((8,2),(8,4),(8,8))
 
-    for KL in (True,False):
+    for KL in (False,):
         s_time = time.time()
         cached = {}
         

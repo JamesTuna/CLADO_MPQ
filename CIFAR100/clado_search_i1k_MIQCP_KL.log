@@ -220,15 +220,15 @@ dbg node_to_quantize_output
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([1.2700], device='cuda:0'), 'top5': tensor([6.5900], device='cuda:0'), 'loss': tensor(5.3223, device='cuda:0'), 'time': 3.068183183670044}
+{'top1': tensor([1.2700], device='cuda:0'), 'top5': tensor([6.5900], device='cuda:0'), 'loss': tensor(5.3223, device='cuda:0'), 'time': 3.1993749141693115}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([41.2200], device='cuda:0'), 'top5': tensor([70.4700], device='cuda:0'), 'loss': tensor(3.5514, device='cuda:0'), 'time': 3.0617129802703857}
+{'top1': tensor([41.2200], device='cuda:0'), 'top5': tensor([70.4700], device='cuda:0'), 'loss': tensor(3.5514, device='cuda:0'), 'time': 3.1205978393554688}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 [MQBENCH] INFO: Disable observer and Enable quantize.
 evaluate mqb quantized model
-{'top1': tensor([72.5600], device='cuda:0'), 'top5': tensor([91.9400], device='cuda:0'), 'loss': tensor(1.3051, device='cuda:0'), 'time': 3.0676186084747314}
+{'top1': tensor([72.5600], device='cuda:0'), 'top5': tensor([91.9400], device='cuda:0'), 'loss': tensor(1.3051, device='cuda:0'), 'time': 3.1297950744628906}
 [MQBENCH] INFO: Disable observer and Disable quantize.
 input of  conv1  is  x_post_act_fake_quantizer
 input of  layer1.0.conv1  is  relu_post_act_fake_quantizer
@@ -1130,3 +1130,17 @@ delete 499: (4, 4)bits
 delete 500: (4, 8)bits
 Set size bound to 0.5 MB
 Restricted license - for non-production use only - expires 2023-10-25
+
+Interrupt request received
+Traceback (most recent call last):
+  File "/homes/zdeng/sum2022/CLADO_MPQ/CIFAR100/clado_search_i1k_MIQCP_noKL.py", line 580, in <module>
+    v1 = MIQCP_optimize(cached_grad=cached_grad,
+  File "/homes/zdeng/sum2022/CLADO_MPQ/CIFAR100/clado_search_i1k_MIQCP_noKL.py", line 566, in MIQCP_optimize
+    prob.solve()
+  File "/homes/zdeng/.conda/envs/mltls/lib/python3.9/site-packages/cvxpy/problems/problem.py", line 481, in solve
+    return solve_func(self, *args, **kwargs)
+  File "/homes/zdeng/.conda/envs/mltls/lib/python3.9/site-packages/cvxpy/problems/problem.py", line 1020, in _solve
+    self.unpack_results(solution, solving_chain, inverse_data)
+  File "/homes/zdeng/.conda/envs/mltls/lib/python3.9/site-packages/cvxpy/problems/problem.py", line 1345, in unpack_results
+    raise error.SolverError(
+cvxpy.error.SolverError: Solver 'GUROBI' failed. Try another solver, or solve with verbose=True for more information.
