@@ -1,9 +1,12 @@
-# QAVAT_PLUS
+# CLADO_MPQ
 ## CVXPY MIQP Solver Issue
+- Use ```prob.solve(solver='xxx')``` to choose the solver of CVXPY problem
+- To use 'GUROBI' solver, ```pip install gurobipy``` 
+- To use 'SCIP' solver, ```conda install -c conda-forge pyscipopt=3.5.0```
 - IMAGENET: for both KL and noKL MPQ search on A8 x W(2,4,8): 'GUROBI' does the job
-- IMAGENET: for noKL MPQ search on A(4,8) x W(4,8): 'GUROBI' non-terminating ; 'SCIP' non-terminating when setting es[es<0]=1e-6 / gives wrong answer when setting es[es<0]=0
+- IMAGENET: for noKL MPQ search on A(4,8) x W(4,8): 'GUROBI' non-terminating ; 'SCIP' non-terminating when setting ```es[es<0]=1e-6``` / gives wrong answer when setting ```es[es<0]=0```
 - CIFAR100: for noKL MPQ search on A8 x W(2,4,8): 'GUROBI' does the job; 'SCIP' not able to get a solution
-- CIFAR100: for KL MPQ search on A8 x W(2,4,8): both 'GUROBI' and 'SCIP' non-terminating (set prob.solve(verbose=True) to see details)
+- CIFAR100: for KL MPQ search on A8 x W(2,4,8): both 'GUROBI' and 'SCIP' non-terminating (set ```prob.solve(verbose=True)``` to see details)
 ## Updates 2022-09-26
 - Two more package needed
 - ```conda install -c conda-forge pyscipopt=3.5.0```
