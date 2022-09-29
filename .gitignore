@@ -1,3 +1,5 @@
 data
 CIFAR100/data
 CIFAR10/data
+.ipynb_checkpoints/
+__pycache__/
