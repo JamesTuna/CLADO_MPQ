@@ -1,4 +1,22 @@
-# QAVAT_PLUS
+# CLADO_MPQ
+## CVXPY MIQP Solver Issue
+- Use ```prob.solve(solver='xxx')``` to choose the solver of CVXPY problem
+- To use 'GUROBI' solver, ```pip install gurobipy``` 
+- To use 'SCIP' solver, ```conda install -c conda-forge pyscipopt=3.5.0```
+- IMAGENET: for both KL and noKL MPQ search on A8 x W(2,4,8): 'GUROBI' does the job
+- IMAGENET: for noKL MPQ search on A(4,8) x W(4,8): 'GUROBI' non-terminating ; 'SCIP' non-terminating when setting ```es[es<0]=1e-6``` / gives wrong answer when setting ```es[es<0]=0```
+- CIFAR100: for noKL MPQ search on A8 x W(2,4,8): 'GUROBI' does the job; 'SCIP' not able to get a solution
+- CIFAR100: for KL MPQ search on A8 x W(2,4,8): both 'GUROBI' and 'SCIP' non-terminating (set ```prob.solve(verbose=True)``` to see details)
+## Updates 2022-09-26
+- Two more package needed
+- ```conda install -c conda-forge pyscipopt=3.5.0```
+- ```pip install cvxpy-base```
+- Hyperparameter tuning is no longer needed in second phase: optimization
+- We formulate the optimization as a Mixed Integer Quadratic Constraint Programming (MIQCP)
+- We use the CVXPY solver to solve the MIQCP, PSD approximation of ```cached_grad``` was neccessary for MIQCP and was found empirically useful on CIFAR100 sanity check
+- Issue of cvxpy MIQCP solver: depends on pyscipopt, may run forever for some unknown reasons on CIFAR100 experiments. 
+- pyscipopt=3.5.0: no problem for ```cached_grad``` = CachedGrad_a248w248c100_resnet56.pkl; stuck for ```cached_grad``` = CachedGrad_a248w248c100_resnet56KL.pkl
+- pyscipopt=3.1.0: stuck for ```cached_grad``` = CachedGrad_a248w248c100_resnet56.pkl
 
 ### 1. CLADO_XXX.ipynb
 - binaryWeight: only consider binary quantization (quantize or not) for weights (tested on CIFAR10/100, superiority over naive method confirmed)
