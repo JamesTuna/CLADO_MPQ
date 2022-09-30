@@ -1,10 +1,9 @@
-import torch,tensorboardX,time
-from utils.util import evaluate,generate_variation
+import torch,time
+from .util import evaluate,generate_variation
 
 def QAVAT_train(model,train_loader,test_loader,config,imgSize=32,imgFlat=False,
                 lossfunc=torch.nn.CrossEntropyLoss(),printPerEpoch=100):
 
-    tb = tensorboardX.SummaryWriter(comment=config['trial_name'])
     C = config
     if C['optimizer'] == 'SGD' or C['optimizer'] == 'sgd':
         optimizer = torch.optim.SGD(model.parameters(),lr=C['lr'],momentum=0.9)

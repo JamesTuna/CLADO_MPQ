@@ -1,7 +1,7 @@
 import time,torch,torchvision,os
 import torchvision.transforms as transforms
 import numpy as np
-from utils.layer import *
+from .layer import *
 
 def get_loader(dset,batch_size,test_size=None,test_batch_size=500):
     if dset == 'MNIST':
