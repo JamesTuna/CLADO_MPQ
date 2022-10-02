@@ -1,10 +1,12 @@
-import torch,tensorboardX,time
+import torch
+#import tensorboardX
+import time
 from utils.util import evaluate,generate_variation
 
 def QAVAT_train(model,train_loader,test_loader,config,imgSize=32,imgFlat=False,
                 lossfunc=torch.nn.CrossEntropyLoss(),printPerEpoch=100):
 
-    tb = tensorboardX.SummaryWriter(comment=config['trial_name'])
+    # tb = tensorboardX.SummaryWriter(comment=config['trial_name'])
     C = config
     if C['optimizer'] == 'SGD' or C['optimizer'] == 'sgd':
         optimizer = torch.optim.SGD(model.parameters(),lr=C['lr'],momentum=0.9)
@@ -41,9 +43,9 @@ def QAVAT_train(model,train_loader,test_loader,config,imgSize=32,imgFlat=False,
             batch_count += 1
         
         total_loss /= batch_count
-        tb.add_scalar('epoch loss',total_loss,epoch+1)
-        tb.add_scalar('epoch time',time.time()-start,epoch+1)
-        tb.add_scalar('learning rate',current_lr,epoch+1)
+        # tb.add_scalar('epoch loss',total_loss,epoch+1)
+        # tb.add_scalar('epoch time',time.time()-start,epoch+1)
+        # tb.add_scalar('learning rate',current_lr,epoch+1)
 
         # console output
         if epoch % printPerEpoch == printPerEpoch-1:
@@ -56,13 +58,13 @@ def QAVAT_train(model,train_loader,test_loader,config,imgSize=32,imgFlat=False,
         if epoch % C['valPerEp'] == 0:
             val = evaluate(test_loader,model,noise_std = C['noise_std'],repeat = C['valSample'],imgSize=imgSize,imgFlat=imgFlat,device = C['device'])
 
-            tb.add_scalar('validation/mean accuracy',val['mean_acc'],epoch+1)
-            tb.add_scalar('validation/qtl accuracy',val['qtl_acc'],epoch+1)
-            tb.add_scalar('validation/mean loss',val['mean_loss'],epoch+1)
-            tb.add_scalar('validation/qtl loss',val['qtl_loss'],epoch+1)
-            tb.add_scalar('validation/validation time',val['test time'],epoch+1)
-            tb.add_histogram('validation/accuracy',val['acc_list'],epoch+1)
-            tb.add_histogram('validation/loss',val['loss_list'],epoch+1)
+            # tb.add_scalar('validation/mean accuracy',val['mean_acc'],epoch+1)
+            # tb.add_scalar('validation/qtl accuracy',val['qtl_acc'],epoch+1)
+            # tb.add_scalar('validation/mean loss',val['mean_loss'],epoch+1)
+            # tb.add_scalar('validation/qtl loss',val['qtl_loss'],epoch+1)
+            # tb.add_scalar('validation/validation time',val['test time'],epoch+1)
+            # tb.add_histogram('validation/accuracy',val['acc_list'],epoch+1)
+            # tb.add_histogram('validation/loss',val['loss_list'],epoch+1)
 
             print("Epoch %s validation [%.4f seconds]"%(epoch+1,val['test time']))
             print("mean acc %.4f mean loss %.4f"%(val['mean_acc'],val['mean_loss']))
