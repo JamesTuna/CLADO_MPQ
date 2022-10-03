@@ -151,8 +151,11 @@ if args.quantize_heads:
     head_str = 'w_heads'
 else:
     head_str = 'no_heads'
-
-if args.num_samples is not None:
+    
+if args.num_samples is None:
+    num_samples_str = 'full'
+else:
+    num_samples_str = f'{args.num_samples}'
     assert args.num_samples >= args.calib_size
 
 # dataset, num_classes = get_dataset(args.dataset, "train", get_transform(True, args), args.data_path)
@@ -878,7 +881,7 @@ if args.clado_results is None:
                     feint_bitops.append(bitops)
                 results[trial_name] = {'size':feint_size, 'perf':feint_map, 'bitops':feint_bitops}    
         
-    fname = f'general_a48w48_rn_coco_clado_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}_{args.tag}.pkl'   
+    fname = f'general_a48w48_rn_coco_clado_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{num_samples_str}_{head_str}_{kl_str}_{args.tag}.pkl'   
     with open(fname, 'wb') as f:
         pickle.dump(results, f)
 else:
@@ -908,26 +911,14 @@ if args.naive_results is None:
                     naive_bitops.append(bitops)
                 results[trial_name] = {'size':naive_size, 'perf':naive_map, 'bitops':naive_bitops}
         
-    fname = f'general_a48w48_rn_coco_naive_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}_{args.tag}.pkl'
+    fname = f'general_a48w48_rn_coco_naive_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{num_samples_str}_{head_str}_{kl_str}_{args.tag}.pkl'
     with open(fname, 'wb') as f:
         pickle.dump(results, f)
 else:
     with open(args.naive_results, 'rb') as f:
         c248_naive = pickle.load(f)
-    
-    
-# with open('saved/general48c10resnet56results.pkl', 'rb') as f:
-#     c48 = pickle.load(f)
-# with open('saved/general248c10resnet56results.pkl', 'rb') as f:
-#     c248 = pickle.load(f)
 
-with open(args.naive_results, 'rb') as f:
-    c248_naive = pickle.load(f)
-    
-with open(args.clado_results, 'rb') as f:
-    c248_clado = pickle.load(f)
-    
-    
+
 def getPF(xs, ys):
     xs = np_array(xs)
     ys = np_array(ys)
