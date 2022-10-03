@@ -49,6 +49,7 @@ def get_args_parser(add_help=True):
     parser.add_argument("--aspect-ratio-group-factor", default=3, type=int)
     parser.add_argument("--calib_size", default=1, type=int)
     parser.add_argument("--kl", dest="kl", help="use KL distance for sensitivity computation", action="store_true")
+    parser.add_argument("--quantize_heads", dest="quantize_heads", help="quantize conv layers in heads", action="store_true")
     parser.add_argument("--save_hm", default="general_a248w248_rn_coco_calib", type=str, help="save heatmap with this name")
     parser.add_argument(
         "--load_hm", 
@@ -64,6 +65,7 @@ def np_array(a):
     if isinstance(a, torch.Tensor):
         return np.array(a.detach().cpu())
     return np.array(a)
+
 
 
 @torch.inference_mode()
@@ -352,49 +354,50 @@ for node in mqb_8bits_model.backbone.graph.nodes:
     except:
         continue
     
-## TODO this won't work because passing a single conv layer to Tracer will break down conv op into low level ops
-# for node in mqb_8bits_model.head.classification_head.cls_logits.graph.nodes:
-#     try:
-#         node_target = getModuleByName(mqb_mix_model.head.classification_head.cls_logits, node.target)
-#         if isinstance(node_target, types_to_quant):
-#             node_args = node.args[0]
-#             print('input of ', node.target, ' is ', node_args)
-#             layer_input_map[node.target] = str(node_args.target)
-#     except:
-#         continue
+if args.quantize_heads:
+    ## TODO this won't work because passing a single conv layer to Tracer will break down conv op into low level ops
+    # for node in mqb_8bits_model.head.classification_head.cls_logits.graph.nodes:
+    #     try:
+    #         node_target = getModuleByName(mqb_mix_model.head.classification_head.cls_logits, node.target)
+    #         if isinstance(node_target, types_to_quant):
+    #             node_args = node.args[0]
+    #             print('input of ', node.target, ' is ', node_args)
+    #             layer_input_map[node.target] = str(node_args.target)
+    #     except:
+    #         continue
 
-print('\n\nClassification head conv layers\n\n') 
-for node in mqb_8bits_model.head.classification_head.conv.graph.nodes:
-    try:
-        node_target = getModuleByName(mqb_mix_model, node.target, cl=True)
-        if isinstance(node_target, types_to_quant):
-            node_args = node.args[0]
-            print('input of ', node.target, ' is ', node_args)
-            # both heads have the same layer names, so we prepend str identifier, will need to remove it when using the list
-            layer_input_map['cl_'+node.target] = str(node_args.target)
-    except:
-        continue
-    
-# for node in mqb_8bits_model.head.regression_head.bbox_reg.graph.nodes:
-#     try:
-#         node_target = getModuleByName(mqb_mix_model.head.regression_head.bbox_reg, node.target)
-#         if isinstance(node_target, types_to_quant):
-#             node_args = node.args[0]
-#             print('input of ', node.target, ' is ', node_args)
-#             layer_input_map[node.target] = str(node_args.target)
-#     except:
-#         continue
-    
-print('\n\nRegression head conv layers\n\n') 
-for node in mqb_8bits_model.head.regression_head.conv.graph.nodes:
-    try:
-        node_target = getModuleByName(mqb_mix_model, node.target, rg=True)
-        if isinstance(node_target, types_to_quant):
-            node_args = node.args[0]
-            print('input of ', node.target, ' is ', node_args)
-            layer_input_map['rg_'+node.target] = str(node_args.target)
-    except:
-        continue
+    print('\n\nClassification head conv layers\n\n') 
+    for node in mqb_8bits_model.head.classification_head.conv.graph.nodes:
+        try:
+            node_target = getModuleByName(mqb_mix_model, node.target, cl=True)
+            if isinstance(node_target, types_to_quant):
+                node_args = node.args[0]
+                print('input of ', node.target, ' is ', node_args)
+                # both heads have the same layer names, so we prepend str identifier, will need to remove it when using the list
+                layer_input_map['cl_'+node.target] = str(node_args.target)
+        except:
+            continue
+        
+    # for node in mqb_8bits_model.head.regression_head.bbox_reg.graph.nodes:
+    #     try:
+    #         node_target = getModuleByName(mqb_mix_model.head.regression_head.bbox_reg, node.target)
+    #         if isinstance(node_target, types_to_quant):
+    #             node_args = node.args[0]
+    #             print('input of ', node.target, ' is ', node_args)
+    #             layer_input_map[node.target] = str(node_args.target)
+    #     except:
+    #         continue
+        
+    print('\n\nRegression head conv layers\n\n') 
+    for node in mqb_8bits_model.head.regression_head.conv.graph.nodes:
+        try:
+            node_target = getModuleByName(mqb_mix_model, node.target, rg=True)
+            if isinstance(node_target, types_to_quant):
+                node_args = node.args[0]
+                print('input of ', node.target, ' is ', node_args)
+                layer_input_map['rg_'+node.target] = str(node_args.target)
+        except:
+            continue
 
 print(f'\n\nlayer_input_map\n{layer_input_map}\n\n')
 
@@ -771,12 +774,12 @@ def optimize(n_iteration, lr, beta, lambda1, lambda2, b=None, naive=False, hardI
     bs = np.linspace(beta[0], beta[1], n_iteration)
     
     for i in range(n_iteration):
-        print('\nIteration:', i, '\n')
-        if i==0 or (i+1) % 1000 == 0:
+        #print('\nIteration:', i, '\n')
+        if i==0 or (i+1) % 100 == 0:
             printInfo = True
             print(f'Iter {i+1}')
-        # else:
-        #     printInfo = False
+        else:
+            printInfo = False
             
         optim.zero_grad()
         loss = lossfunc(v, bs[i], lambda1, lambda2, printInfo=printInfo, b=b, naive=naive)
@@ -844,66 +847,90 @@ evaluate_decision(v)
 # plt.hist(random_size)
 
 print(f'\n\n\nGenerating Pareto Frontiers\n\n\n')
-print('\n\n\nGenerating Feint Plots\n\n')
-## Pareto-Frontier of CLADO vs Inter-Layer Dependency Unaware Optimization (Naive)
-n_iters = (args.num_iter, )
-#lambda1s = np.logspace(-5, -3, 3)
-lambda1s = (0, 1e-1, 1)
-lambda2s = np.logspace(-3, 0, args.resolution) # for 8 x (8, 4)
-sample_size = 1
-results = {}
-for n_iter in n_iters:
-    for lambda1 in lambda1s:
-        print('\n\nlambda1:', lambda1)
-        for lambda2 in lambda2s:
-            print('\n\nlambda2:', lambda2)
-            feint_map, feint_size, feint_bitops = [], [], []
-            trial_name = f'{aw_scheme}bits_CLADO_lambda1{lambda1}_lambda2{lambda2}_{n_iter}iters'
-            print(f'\n\ntrial_name  {trial_name}\n\n')
-            for repeat in range(sample_size):
-                v = optimize(n_iteration=n_iter, lr=2e-3, beta=[20, 2], lambda1=lambda1, lambda2=lambda2, naive=False)
-                perf, size, bitops = evaluate_decision(v)
-                feint_map.append(perf)
-                feint_size.append(size)
-                feint_bitops.append(bitops)
-            results[trial_name] = {'size':feint_size, 'perf':feint_map, 'bitops':feint_bitops}
-            
-with open('general_a48w48_rn_coco_clado_results.pkl', 'wb') as f:
-    pickle.dump(results, f)
 
-print('\n\n\nGenerating Naive Plots\n\n')
-lambda1s = np.logspace(-5, -3, 3)
-lambda1s = (0, 1e-1, 1)
-lambda2s = np.logspace(-3, 0, args.resolution) 
-sample_size = 1
+if args.kl:
+    kl_str = 'kl'
+else:
+    kl_str = 'no_kl' 
+    
+if args.quantize_heads:
+    head_str = 'w_heads'
+else:
+    head_str = 'no_heads'
+        
+if args.clado_results is None:
+    print('\n\n\nGenerating CLADO Plots\n\n')
+    ## Pareto-Frontier of CLADO vs Inter-Layer Dependency Unaware Optimization (Naive)
+    n_iters = (args.num_iter, )
+    #lambda1s = np.logspace(-5, -3, 3)
+    lambda1s = (0, 1e-1, 1)
+    lambda2s = np.logspace(-3, 0, args.resolution) # for 8 x (8, 4)
+    sample_size = 1
+    results = {}
+    for n_iter in n_iters:
+        for lambda1 in lambda1s:
+            print('\n\nlambda1:', lambda1)
+            for lambda2 in lambda2s:
+                print('\n\nlambda2:', lambda2)
+                feint_map, feint_size, feint_bitops = [], [], []
+                trial_name = f'{aw_scheme}bits_CLADO_lambda1{lambda1}_lambda2{lambda2}_{n_iter}iters'
+                print(f'\n\ntrial_name  {trial_name}\n\n')
+                for repeat in range(sample_size):
+                    v = optimize(n_iteration=n_iter, lr=2e-3, beta=[20, 2], lambda1=lambda1, lambda2=lambda2, naive=False)
+                    perf, size, bitops = evaluate_decision(v)
+                    feint_map.append(perf)
+                    feint_size.append(size)
+                    feint_bitops.append(bitops)
+                results[trial_name] = {'size':feint_size, 'perf':feint_map, 'bitops':feint_bitops}    
+        
+    fname = f'general_a48w48_rn_coco_clado_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}.pkl'   
+    with open(fname, 'wb') as f:
+        pickle.dump(results, f)
+else:
+    with open(args.clado_results, 'rb') as f:
+        c248_clado = pickle.load(f)
 
-for n_iter in n_iters:
-    for lambda1 in lambda1s:
-        print('\n\nlambda1:', lambda1)
-        for lambda2 in lambda2s:
-            naive_map, naive_size, naive_bitops = [], [], []
-            print('\n\nlambda2:', lambda2)
-            trial_name = f'{aw_scheme}bits_NAIVE_lambda1{lambda1}_lambda2{lambda2}_{n_iter}iters'
-            print(f'\n\ntrial_name  {trial_name}\n\n')
-            for repeat in range(sample_size):
-                v = optimize(n_iteration=n_iter, lr=2e-3, beta=[20, 2], lambda1=lambda1, lambda2=lambda2, naive=True)
-                perf, size, bitops = evaluate_decision(v)
-                naive_map.append(perf)
-                naive_size.append(size)
-                naive_bitops.append(bitops)
-            results[trial_name] = {'size':naive_size, 'perf':naive_map, 'bitops':naive_bitops}
-            
-            
-with open('general_a48w48_rn_coco_naive_results.pkl', 'wb') as f:
-    pickle.dump(results, f)
+if args.naive_results is None:
+    print('\n\n\nGenerating Naive Plots\n\n')
+    lambda1s = np.logspace(-5, -3, 3)
+    lambda1s = (0, 1e-1, 1)
+    lambda2s = np.logspace(-3, 0, args.resolution) 
+    sample_size = 1
+
+    for n_iter in n_iters:
+        for lambda1 in lambda1s:
+            print('\n\nlambda1:', lambda1)
+            for lambda2 in lambda2s:
+                naive_map, naive_size, naive_bitops = [], [], []
+                print('\n\nlambda2:', lambda2)
+                trial_name = f'{aw_scheme}bits_NAIVE_lambda1{lambda1}_lambda2{lambda2}_{n_iter}iters'
+                print(f'\n\ntrial_name  {trial_name}\n\n')
+                for repeat in range(sample_size):
+                    v = optimize(n_iteration=n_iter, lr=2e-3, beta=[20, 2], lambda1=lambda1, lambda2=lambda2, naive=True)
+                    perf, size, bitops = evaluate_decision(v)
+                    naive_map.append(perf)
+                    naive_size.append(size)
+                    naive_bitops.append(bitops)
+                results[trial_name] = {'size':naive_size, 'perf':naive_map, 'bitops':naive_bitops}
+        
+    fname = f'general_a48w48_rn_coco_naive_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}.pkl'
+    with open(fname, 'wb') as f:
+        pickle.dump(results, f)
+else:
+    with open(args.naive_results, 'rb') as f:
+        c248_naive = pickle.load(f)
     
     
 # with open('saved/general48c10resnet56results.pkl', 'rb') as f:
 #     c48 = pickle.load(f)
 # with open('saved/general248c10resnet56results.pkl', 'rb') as f:
 #     c248 = pickle.load(f)
-with open('general_a48w48_rn_coco_clado_results.pkl', 'rb') as f:
-    c248 = pickle.load(f)
+
+with open(args.naive_results, 'rb') as f:
+    c248_naive = pickle.load(f)
+    
+with open(args.clado_results, 'rb') as f:
+    c248_clado = pickle.load(f)
     
     
 def getPF(xs, ys):
