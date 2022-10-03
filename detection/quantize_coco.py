@@ -50,14 +50,10 @@ def get_args_parser(add_help=True):
     parser.add_argument("--calib_size", default=1, type=int)
     parser.add_argument("--kl", dest="kl", help="use KL distance for sensitivity computation", action="store_true")
     parser.add_argument("--quantize_heads", dest="quantize_heads", help="quantize conv layers in heads", action="store_true")
-    parser.add_argument("--save_hm", default="general_a248w248_rn_coco_calib", type=str, help="save heatmap with this name")
-    parser.add_argument(
-        "--load_hm", 
-        #default="general_a248w248_rn_coco_calib",
-        default=None,
-        type=str, 
-        help="path to precomputed heatmap file"
-        )
+    parser.add_argument("--tag", default="", type=str, help="add this tag string to any saved filename")
+    parser.add_argument("--load_hm", default=None, type=str,  help="path to precomputed heatmap file")
+    parser.add_argument("--naive_results", default=None, type=str,  help="path to precomputed naive algo results file")
+    parser.add_argument("--clado_results", default=None, type=str,  help="path to precomputed clado algo results file")
     
     return parser
 
@@ -146,6 +142,15 @@ adv_ptq = False
 dataset = 'coco'
 modelname = 'retinanet'
 mn = dataset.lower()+ '_' + modelname
+if args.kl:
+    kl_str = 'kl'
+else:
+    kl_str = 'no_kl' 
+    
+if args.quantize_heads:
+    head_str = 'w_heads'
+else:
+    head_str = 'no_heads'
 
 if args.num_samples is not None:
     assert args.num_samples >= args.calib_size
@@ -552,7 +557,7 @@ if args.load_hm is None:
                 for maw in aw_scheme:
                     hm[layer_index[n+f'{naw}bits'], layer_index[m+f'{maw}bits']] = cached[(n, m, naw, maw)]
 
-    fname = args.save_hm + f'_{args.calib_size}'
+    fname = f'general_a48w48_rn_coco_heatmaps_calib_{args.calib_size}_{head_str}_{kl_str}_{args.tag}.pkl'
     print(f'\n\n\nSaving Heat Maps to {fname}\n\n\n')
     hm = {'Ltilde':hm, 'layer_index':layer_index}
     with open(fname, 'wb') as f:
@@ -847,16 +852,6 @@ evaluate_decision(v)
 # plt.hist(random_size)
 
 print(f'\n\n\nGenerating Pareto Frontiers\n\n\n')
-
-if args.kl:
-    kl_str = 'kl'
-else:
-    kl_str = 'no_kl' 
-    
-if args.quantize_heads:
-    head_str = 'w_heads'
-else:
-    head_str = 'no_heads'
         
 if args.clado_results is None:
     print('\n\n\nGenerating CLADO Plots\n\n')
@@ -883,7 +878,7 @@ if args.clado_results is None:
                     feint_bitops.append(bitops)
                 results[trial_name] = {'size':feint_size, 'perf':feint_map, 'bitops':feint_bitops}    
         
-    fname = f'general_a48w48_rn_coco_clado_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}.pkl'   
+    fname = f'general_a48w48_rn_coco_clado_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}_{args.tag}.pkl'   
     with open(fname, 'wb') as f:
         pickle.dump(results, f)
 else:
@@ -913,7 +908,7 @@ if args.naive_results is None:
                     naive_bitops.append(bitops)
                 results[trial_name] = {'size':naive_size, 'perf':naive_map, 'bitops':naive_bitops}
         
-    fname = f'general_a48w48_rn_coco_naive_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}.pkl'
+    fname = f'general_a48w48_rn_coco_naive_results_{args.num_iter}iters_calib_{args.calib_size}_num_samples_{args.num_samples}_{head_str}_{kl_str}_{args.tag}.pkl'
     with open(fname, 'wb') as f:
         pickle.dump(results, f)
 else:
@@ -996,6 +991,7 @@ plt.ylim([0.88, 0.95])
 plt.xlabel('Hardware Cost (Model Size in MB)', fontsize=20)
 plt.ylabel('Performance (Accuracy)', fontsize=20)
 plt.legend()
+#TODO fname
 plt.savefig('rn_coco_w248.pdf', transparent=True, bbox_inches='tight', pad_inches=0)
 
 
@@ -1024,6 +1020,7 @@ plt.legend()
 plt.xlabel('Hardware Cost (Model bitops in Gops)', fontsize=20)
 plt.ylabel('Performance (Accuracy)', fontsize=20)
 plt.legend()
+# TODO fname
 plt.savefig('rn_coco_a48w48.pdf', transparent=True, bbox_inches='tight', pad_inches=0)
 
 
