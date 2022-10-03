@@ -63,7 +63,6 @@ def np_array(a):
     return np.array(a)
 
 
-
 @torch.inference_mode()
 def evaluate(model, data_loader, device, calib_size=None, train=False, kl=False):
     n_threads = torch.get_num_threads()
@@ -123,6 +122,7 @@ def evaluate(model, data_loader, device, calib_size=None, train=False, kl=False)
     elif train:
         return total_loss
     else:
+        coco_evaluator.synchronize_between_processes()
         # accumulate predictions from all images
         coco_evaluator.accumulate()
         map_scores = coco_evaluator.summarize()
@@ -215,7 +215,7 @@ test = data_loader_test
 
 map_score = evaluate(model, test, device)
 print(f'\n\nModel accuracy (mAP score): {map_score:.2f}\n\n')
-
+raise(SystemExit)
 print(f'\n\n\nRunning Calibration for the first {args.calib_size} images\n\n\n')
 # calibration data used to calibrate PTQ and MPQ
 # to use calib_data with KL distance metric, pass train dataloader in eval mode and specify calib_size
@@ -590,6 +590,8 @@ for name in hm['layer_index']:
     
 print(f'\n\n\nPlotting Heat Maps\n\n\n')
 plt.imshow(hm['Ltilde'], cmap='hot')
+plt.savefig('heatmap.png')
+#raise(SystemExit)
 print(f'\n\nHeat Maps:\n\n{hm}\n\n')
 
 print(f'\n\n\nBuilding Cached Grads\n\n\n')
