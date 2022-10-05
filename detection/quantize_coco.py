@@ -48,8 +48,10 @@ def get_args_parser(add_help=True):
     parser.add_argument("--output-dir", default=".", type=str, help="path to save outputs")
     parser.add_argument("--aspect-ratio-group-factor", default=3, type=int)
     parser.add_argument("--calib_size", default=1, type=int)
+    parser.add_argument("--evaluate", dest="evaluate", help="run FP32 evaluation as baseline", action="store_true")
     parser.add_argument("--kl", dest="kl", help="use KL distance for sensitivity computation", action="store_true")
     parser.add_argument("--quantize_heads", dest="quantize_heads", help="quantize conv layers in heads", action="store_true")
+    parser.add_argument("--quantize_fpn", dest="quantize_fpn", help="quantize conv layers in FPN", action="store_true")
     parser.add_argument("--tag", default="", type=str, help="add this tag string to any saved filename")
     parser.add_argument("--load_hm", default=None, type=str,  help="path to precomputed heatmap file")
     parser.add_argument("--naive_results", default=None, type=str,  help="path to precomputed naive algo results file")
@@ -134,6 +136,12 @@ args = get_args_parser().parse_args()
 
 if args.output_dir:
     utils.mkdir(args.output_dir)
+    
+"""
+1. quantize R50 only (except conv1)
+2. quantize R50 + FPN (except conv1)
+3. quantize R50 + FPN + heads (except conv1 and logits in heads)
+"""
 
 print(args)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -213,9 +221,10 @@ model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=True).to(
 train = data_loader_train
 test = data_loader_test
 
-map_score = evaluate(model, test, device)
-print(f'\n\nModel accuracy (mAP score): {map_score:.2f}\n\n')
-raise(SystemExit)
+if args.evaluate:
+    map_score_baseline = evaluate(model, test, device)
+    print(f'\n\nModel accuracy (mAP score): {map_score_baseline:.2f}\n\n')
+
 print(f'\n\n\nRunning Calibration for the first {args.calib_size} images\n\n\n')
 # calibration data used to calibrate PTQ and MPQ
 # to use calib_data with KL distance metric, pass train dataloader in eval mode and specify calib_size
@@ -226,9 +235,6 @@ stacked_tensor, calib_data, calib_fp_output = evaluate(
     calib_size=args.calib_size, 
     kl=args.kl
     )
-
-MPQ_scheme = (2, 4, 8)
-model.eval()
 
 # configuration
 ptq_reconstruction_config_init = {
@@ -263,6 +269,10 @@ ptq_reconstruction_config = dotdict(ptq_reconstruction_config)
 ptq_reconstruction_config_init = dotdict(ptq_reconstruction_config_init)
 
 print(f'\nSetting up MQBench\n')
+
+map_scores = []
+MPQ_scheme = (8, 6, 4)
+
 for b in MPQ_scheme:
     mqb_fp_model = deepcopy(model)
     
@@ -286,15 +296,64 @@ for b in MPQ_scheme:
                 'per_channel': False,                                  # custom whether quant is per-channel or per-tensor for activation,
                 'pot_scale': False,                                   # custom whether scale is power of two for activation.
             }
-        }                                                         # custom tracer behavior, checkout https://github.com/pytorch/pytorch/blob/efcbbb177eacdacda80b94ad4ce34b9ed6cf687a/torch/fx/_symbolic_trace.py#L836
+        },            
+        'extra_quantizer_dict': {
+            # 'additional_function_type': [operator.add,],              # additional function type, a list, use function full name, like operator.add.
+            # 'additional_module_type': (torch.nn.Upsample),            # additional module type, a tuple, use class full name, like torch.nn.Upsample.
+            'additional_node_name': ['body_conv1'] ,                # addition node name, a list, use full node name, like layer1_1_conv1.
+            #'exclude_module_name': [layer2.1.relu,],                  # skip specific module, a list, use module qualify name, like layer2.1.relu.
+            #'exclude_function_type': [operator.mul,] ,                # skip specific module, a list, use function full name, like operator.mul
+            #'exclude_node_name': [layer1_1_conv1],                    # skip specific module, a list, use full node name, like layer1_1_conv1.
+    },                                             
+        
+        # custom tracer behavior, checkout https://github.com/pytorch/pytorch/blob/efcbbb177eacdacda80b94ad4ce34b9ed6cf687a/torch/fx/_symbolic_trace.py#L836
     }
     print(f'\n\n\nPreparing {b} bits model using MQBench\n\n\n')
     # quantize R50+FPN (backbone) and classification/regression heads of RetinaNet:
+    print(f'\n\nPreparing backbone: Resnet-50 and FPN module\n\n')
     mqb_fp_model.backbone = prepare_by_platform(mqb_fp_model.backbone, backend, extra_config).cuda()
-    #mqb_fp_model.head.classification_head.cls_logits = prepare_by_platform(mqb_fp_model.head.classification_head.cls_logits, backend, extra_config).cuda()
-    mqb_fp_model.head.classification_head.conv = prepare_by_platform(mqb_fp_model.head.classification_head.conv, backend, extra_config).cuda()
-    #mqb_fp_model.head.regression_head.bbox_reg = prepare_by_platform(mqb_fp_model.head.regression_head.bbox_reg, backend, extra_config).cuda()
-    mqb_fp_model.head.regression_head.conv = prepare_by_platform(mqb_fp_model.head.regression_head.conv, backend, extra_config).cuda()
+    
+    # FPN is part of the backbone, so it gets quantized automatically, here we revert it unless quantize_fpn arg is passed
+    # assuming 10 bits of precision is equivalent to FP32
+    if not args.quantize_fpn:
+        fpn_bits = 10
+        print(f'\n\n\n**** NOT quantizing FPN layers (reverting) ****\n\n\n')
+        for m in mqb_fp_model.backbone.named_modules():
+            if 'fpn' in m[0] and isinstance(m[1], torch.nn.qat.modules.conv.Conv2d):
+                print(f'\n\nQuantizing layer {m[0]} weights to 8 bits\n\n\n')
+                print(m[1].weight_fake_quant)
+                m[1].weight_fake_quant.quant_min = -2 ** (fpn_bits - 1)
+                m[1].weight_fake_quant.quant_max = 2 ** (fpn_bits - 1) - 1
+                print('\n\n', m[1].weight_fake_quant, '\n')
+    
+    if args.quantize_heads:
+        print(f'\n\n\n**** Quantizing Heads *****\n\n\n')
+        print(f'\n\nPreparing Classification Head\n\n')
+        mqb_fp_model.head.classification_head.conv = prepare_by_platform(mqb_fp_model.head.classification_head.conv, backend, extra_config).cuda()
+        print(f'\n\nPreparing Regression Head\n\n')
+        mqb_fp_model.head.regression_head.conv = prepare_by_platform(mqb_fp_model.head.regression_head.conv, backend, extra_config).cuda()
+        #mqb_fp_model.head.regression_head.bbox_reg = prepare_by_platform(mqb_fp_model.head.regression_head.bbox_reg, backend, extra_config).cuda()
+        #mqb_fp_model.head.classification_head.cls_logits = prepare_by_platform(mqb_fp_model.head.classification_head.cls_logits, backend, extra_config).cuda()
+        
+        # MQBench academic quantizer will NOT quantize first and last layers
+        # we override it here by quantizing the first layer in both heads
+        for m in mqb_fp_model.head.classification_head.conv.named_modules():
+            if isinstance(m[1], torch.nn.qat.modules.conv.Conv2d):    # and 'p' not in m[0]:  # do not quantize pooling layers (which are conv layers with stride=2)
+                print(f'\n\nQuantizing layer {m[0]} weights to {b} bits\n\n\n')
+                print(m[1].weight_fake_quant)
+                m[1].weight_fake_quant.quant_min = -2 ** (b - 1)
+                m[1].weight_fake_quant.quant_max = 2 ** (b - 1) - 1
+                print('\n\n', m[1].weight_fake_quant, '\n')
+                
+        for m in mqb_fp_model.head.regression_head.conv.named_modules():
+            if isinstance(m[1], torch.nn.qat.modules.conv.Conv2d):  # and 'p' not in m[0]:  # do not quantize pooling layers (which are conv layers with stride=2)
+                print(f'\n\nQuantizing layer {m[0]} weights to {b} bits\n\n\n')
+                print(m[1].weight_fake_quant)
+                m[1].weight_fake_quant.quant_min = -2 ** (b - 1)
+                m[1].weight_fake_quant.quant_max = 2 ** (b - 1) - 1
+                print('\n\n', m[1].weight_fake_quant, '\n')
+    
+    # TODO examine every layer for correct quantization attributes
     exec(f'mqb_{b}bits_model = deepcopy(mqb_fp_model)')
     
     # calibration loop
@@ -302,7 +361,7 @@ for b in MPQ_scheme:
     enable_calibration(eval(f'mqb_{b}bits_model'))
     for img, label in calib_data:
         eval(f'mqb_{b}bits_model')(img)
-    
+
     if adv_ptq:
         if os.path.exists(f'QDROP_{b}bits_{mn}.pt'):
             exec(f'mqb_{b}bits_model=ptq_reconstruction(mqb_{b}bits_model, stacked_tensor, ptq_reconstruction_config_init).cuda()')
@@ -315,14 +374,27 @@ for b in MPQ_scheme:
             torch.save(eval(f'mqb_{b}bits_model').state_dict(), f'QDROP_{b}bits_{mn}.pt')
             
       
-print(f'\n\n\nQuantizing Model\n\n\n')      
+print(f'\n\n\nQuantizing Model\n\n\n')    
+map_scores = []  
 for b in MPQ_scheme: 
     disable_all(eval(f'mqb_{b}bits_model'))
     enable_quantization(eval(f'mqb_{b}bits_model'))
     print('\n\nevaluate mqb quantized model')
     map_score = evaluate(eval(f'mqb_{b}bits_model'), test, device)
     print(f'\n\nTest mAP for {b} bit model is {map_score:.2f}\n\n')
+    map_scores.append(map_score)
     
+if args.evaluate:
+    print(f'\nFP32 baseline: {map_score_baseline:.2f}')
+    
+print(f'\nQuantized model results:\nquantized FPN: {args.quantize_fpn}\nquantized heads: {args.quantize_heads}\ncalib_size: {args.calib_size}\n')
+for s, b in zip(map_scores, MPQ_scheme):
+    print(f'{b} bits: {s:.2f}')
+
+   
+raise(SystemExit)
+
+ 
 mqb_fp_model = deepcopy(mqb_8bits_model)
 disable_all(mqb_fp_model)
 mqb_mix_model = deepcopy(mqb_fp_model)
@@ -363,17 +435,6 @@ for node in mqb_8bits_model.backbone.graph.nodes:
         continue
     
 if args.quantize_heads:
-    ## TODO this won't work because passing a single conv layer to Tracer will break down conv op into low level ops
-    # for node in mqb_8bits_model.head.classification_head.cls_logits.graph.nodes:
-    #     try:
-    #         node_target = getModuleByName(mqb_mix_model.head.classification_head.cls_logits, node.target)
-    #         if isinstance(node_target, types_to_quant):
-    #             node_args = node.args[0]
-    #             print('input of ', node.target, ' is ', node_args)
-    #             layer_input_map[node.target] = str(node_args.target)
-    #     except:
-    #         continue
-
     print('\n\nClassification head conv layers\n\n') 
     for node in mqb_8bits_model.head.classification_head.conv.graph.nodes:
         try:
@@ -386,16 +447,6 @@ if args.quantize_heads:
         except:
             continue
         
-    # for node in mqb_8bits_model.head.regression_head.bbox_reg.graph.nodes:
-    #     try:
-    #         node_target = getModuleByName(mqb_mix_model.head.regression_head.bbox_reg, node.target)
-    #         if isinstance(node_target, types_to_quant):
-    #             node_args = node.args[0]
-    #             print('input of ', node.target, ' is ', node_args)
-    #             layer_input_map[node.target] = str(node_args.target)
-    #     except:
-    #         continue
-        
     print('\n\nRegression head conv layers\n\n') 
     for node in mqb_8bits_model.head.regression_head.conv.graph.nodes:
         try:
@@ -406,6 +457,27 @@ if args.quantize_heads:
                 layer_input_map['rg_'+node.target] = str(node_args.target)
         except:
             continue
+      
+    # for node in mqb_8bits_model.head.regression_head.bbox_reg.graph.nodes:
+    #     try:
+    #         node_target = getModuleByName(mqb_mix_model.head.regression_head.bbox_reg, node.target)
+    #         if isinstance(node_target, types_to_quant):
+    #             node_args = node.args[0]
+    #             print('input of ', node.target, ' is ', node_args)
+    #             layer_input_map[node.target] = str(node_args.target)
+    #     except:
+    #         continue  
+
+    ## TODO this won't work because passing a single conv layer to Tracer will break down conv op into low level ops
+    # for node in mqb_8bits_model.head.classification_head.cls_logits.graph.nodes:
+    #     try:
+    #         node_target = getModuleByName(mqb_mix_model.head.classification_head.cls_logits, node.target)
+    #         if isinstance(node_target, types_to_quant):
+    #             node_args = node.args[0]
+    #             print('input of ', node.target, ' is ', node_args)
+    #             layer_input_map[node.target] = str(node_args.target)
+    #     except:
+    #         continue
 
 print(f'\n\nlayer_input_map\n{layer_input_map}\n\n')
 
@@ -491,17 +563,6 @@ def perturb_loss(
         mqb_mix_model = deepcopy(mqb_fp_model)
             
     return perturbed_loss
-
-# # perturb loss functionality check
-# del layer_input_map['conv1']
-# del layer_input_map['fc']
-
-# for layer in layer_input_map:
-#     for a_bits in MPQ_scheme:
-#         for w_bits in MPQ_scheme:
-#             print(f'{layer} (a:{a_bits} bits, w:{w_bits} bits))')
-#             p = perturb_loss({layer:(a_bits, w_bits)}, eval_data=test, printInfo=True, KL=False)
-#             #print(f'{layer} (a:{a_bits} bits, w:{w_bits} bits), accuracy degradation: {p*100:.2f}%')
 
 
 # Build Cached Grad if not done before
@@ -590,8 +651,10 @@ for name in hm['layer_index']:
     
 print(f'\n\n\nPlotting Heat Maps\n\n\n')
 plt.imshow(hm['Ltilde'], cmap='hot')
-plt.savefig('heatmap.png')
-#raise(SystemExit)
+if args.load_hm is not None:
+    fname = args.load_hm
+plt.savefig(fname+'.png')
+
 print(f'\n\nHeat Maps:\n\n{hm}\n\n')
 
 print(f'\n\n\nBuilding Cached Grads\n\n\n')
