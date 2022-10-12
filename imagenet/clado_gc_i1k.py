@@ -25,7 +25,7 @@ import torchvision as tv
 torch.manual_seed(0)
 np.random.seed(0)
 
-MPQ_scheme = (4,8)
+MPQ_scheme = (2,4,8)
 modelname = 'resnet50'
 
 for adv_ptq in (False,):
@@ -91,8 +91,9 @@ for adv_ptq in (False,):
         for img,label in train:
             i += 1
             stacked_tensor.append(img)
-            calib_data.append((img,label))
-            calib_fp_output.append(model(img.cuda()))
+            if i>8:
+                calib_data.append((img,label))
+                calib_fp_output.append(model(img.cuda()))
             if i == 16:
                 break
     # PTQ
@@ -158,7 +159,7 @@ for adv_ptq in (False,):
                     'pot_scale': False,                                   # custom whether scale is power of two for weight.
                 },
                 'a_qscheme': {
-                    'bit': b,                                             # custom bitwidth for activation,
+                    'bit': 8,                                             # custom bitwidth for activation,
                     'symmetry': False,                                    # custom whether quant is symmetric for activation,
                     'per_channel': False,                                  # custom whether quant is per-channel or per-tensor for activation,
                     'pot_scale': False,                                   # custom whether scale is power of two for activation.
@@ -171,7 +172,7 @@ for adv_ptq in (False,):
 
         # calibration loop
         enable_calibration(eval(f'mqb_{b}bits_model'))
-        for img,label in calib_data:
+        for img in stacked_tensor:
             eval(f'mqb_{b}bits_model')(img.cuda())  
 
         if adv_ptq:
@@ -281,9 +282,9 @@ for adv_ptq in (False,):
             aw_scheme.append((a_bits,w_bits))
 
     aw_scheme = ((4,4),(4,8),(8,4),(8,8))
-    #aw_scheme = ((8,2),(8,4),(8,8))
+    aw_scheme = ((8,2),(8,4),(8,8))
 
-    for KL in (True,False):
+    for KL in (False,):
         s_time = time.time()
         cached = {}
         
@@ -327,7 +328,7 @@ for adv_ptq in (False,):
         with open('gc_tmp.pkl','wb') as f:
             pickle.dump({'Ltilde':hm,'layer_index':layer_index},f)
 
-        saveas = 'CachedGrad_'
+        saveas = 'CachedGrad1kx512(2)_'
         saveas += 'QDROP' if adv_ptq else ''
         saveas += str(aw_scheme)
         saveas += mn
