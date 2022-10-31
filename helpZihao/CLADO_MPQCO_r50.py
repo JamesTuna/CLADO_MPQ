@@ -460,7 +460,7 @@ for clado_batch in range(0,len(calib_data)):
 
         index2layerscheme[index] = (layer_name,scheme)
 
-    saveas = f'Ltilde_resnet50/Ltilde_batch{args.start_batch+clado_batch}(size64)_'
+    saveas = f'Ltilde_resnet50/Ltilde_batch{args.start_batch+clado_batch}(size{args.bs})_'
     saveas += 'QDROP' if adv_ptq else ''
     saveas += str(aw_scheme)
     saveas += mn
@@ -484,7 +484,7 @@ for clado_batch in range(0,len(calib_data)):
 # ref_Ltilde_clado = batch_Ltildes_clado.mean(axis=0)
 # batch_Ltildes_mpqco = []
 # for batch_id in range(45):
-#     with open(f'MPQCO_DELTAL_resnet50_batch{batch_id}(size64).pkl','rb') as f:
+#     with open(f'MPQCO_DELTAL_resnet50_batch{batch_id}(size{args.bs}).pkl','rb') as f:
 #         hm = pickle.load(f)
         
 #     deltal = np.zeros(ref_Ltilde_clado.shape)
@@ -653,7 +653,7 @@ for clado_batch in range(0,len(calib_data)):
 #         clado_ltilde = batch_Ltildes_clado[shuffle].mean(axis=0)
 #         mpqco_ltilde = batch_Ltildes_mpqco[shuffle].mean(axis=0)
         
-#         with open(f'r50res_{n_batch}batches(size64)_sid{sid}.pkl','wb') as f:
+#         with open(f'r50res_{n_batch}batches(size{args.bs})_sid{sid}.pkl','wb') as f:
 #             pickle.dump({'shuffle':shuffle,
 #                          'clado_perf':clado_perf,'clado_size':clado_size,'clado_bitops':clado_bitops,
 #                          'naive_perf':naive_perf,'naive_size':naive_size,'naive_bitops':naive_bitops,
@@ -704,7 +704,7 @@ for clado_batch in range(0,len(calib_data)):
 #             mpqco_size.append(size)
 #             mpqco_bitops.append(bitops)
         
-#         with open(f'r50res_{n_batch}batches(size64)_sid{sid}.pkl','wb') as f:
+#         with open(f'r50res_{n_batch}batches(size{args.bs})_sid{sid}.pkl','wb') as f:
 #             pickle.dump({'shuffle':shuffle,
 #                          'clado_perf':clado_perf,'clado_size':clado_size,'clado_bitops':clado_bitops,
 #                          'naive_perf':naive_perf,'naive_size':naive_size,'naive_bitops':naive_bitops,
