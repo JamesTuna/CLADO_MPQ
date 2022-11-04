@@ -87,12 +87,16 @@ modelname = 'resnet50'
 adv_ptq = False
 dataset = 'I1K'
 mn = dataset.lower()+ '_' + modelname
-ds = I1K(data_dir=os.path.join('/tools/d-matrix/ml/data', "imagenet"),
-         train_batch_size=args.bs,test_batch_size=args.bs,cuda=True,shuffle=True)
-# ds = I1K(data_dir=os.path.join('/home/usr1/zd2922/data', "imagenet"),
-#          train_batch_size=args.bs,test_batch_size=args.bs,cuda=True,shuffle=True)
+#ds = I1K(data_dir=os.path.join('/tools/d-matrix/ml/data', "imagenet"),
+#         train_batch_size=args.bs,test_batch_size=args.bs,cuda=True,shuffle=True)
+ds = I1K(data_dir=os.path.join('/home/usr1/zd2922/data', "imagenet"),
+          train_batch_size=args.bs,test_batch_size=args.bs,cuda=True,shuffle=True)
 
 model = eval("tv.models." + modelname)(pretrained=True).cuda()
+torch.save(model,mn+'.pth')
+torch.save(model.state_dict(),mn+'_state_dict.pth')
+with open(f'{mn}.pkl','wb') as f:
+    pickle.dump(model,f)
 ds.train.num_workers = args.nthreads
 ds.val.num_workers = args.nthreads
 
@@ -238,6 +242,7 @@ for b in MPQ_scheme:
     for img in stacked_tensor:
         eval(f'mqb_{b}bits_model')(img.cuda())
     
+    #torch.save(eval(f'mqb_{b}bits_model'),f'{mn}_mqb_{b}bits_model.pth')
     if adv_ptq:
         if os.path.exists(f'QDROP_{b}bits_{mn}.pt'):
             exec(f'mqb_{b}bits_model=ptq_reconstruction(mqb_{b}bits_model, stacked_tensor, ptq_reconstruction_config_init).cuda()')
