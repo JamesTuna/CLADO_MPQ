@@ -77,10 +77,11 @@ def MIQCP_optimize(cached_grad,layer_bitops,layer_size,
     prob = cp.Problem(objective,constraints)
     #solver='GUROBI'
     #['ECOS', 'ECOS_BB', 'GUROBI', 'OSQP', 'SCIP', 'SCIPY', 'SCS']
-    prob.solve(solver='GUROBI', verbose=False)
+    prob.solve(solver='GUROBI', verbose=False,TimeLimit=60)
     
     # Print result.
-    print("\nThe optimal value is", prob.value)
+    print("\nThe objective is", prob.value)
+    print("\nSolution state", prob.status)
     print("A solution x is")
     print(x.value)
     return x
