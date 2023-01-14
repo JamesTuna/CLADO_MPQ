@@ -94,7 +94,7 @@ def feintLady(calib_num=128):
         hm = pickle.load(f)
     ref_layer_index = hm['layer_index']
 
-    with open('./variance_study/bert-base_layer-size_layer-bitops_A8-W8-4-2.pkl', 'rb') as f:
+    with open('./variance_study/bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl', 'rb') as f:
         layer_bitops_size = pickle.load(f)
     layer_bitops = layer_bitops_size['layer_bitops']
     layer_size = layer_bitops_size['layer_size']
@@ -154,7 +154,7 @@ def feintLady(calib_num=128):
                 L = hm['Ltilde'].shape[0]
 
                 clado_res, naive_res, mpqco_res = [], [], []
-                for size_bound in np.linspace(20.25036621094, 82, 40): 
+                for size_bound in np.linspace(20.2505, 81.05, 30): 
                     print(f'Set size bound to {size_bound} MB')
                     #clado
                     v1 = MIQCP_optimize(cached_grad=cached_grad,
@@ -183,7 +183,7 @@ def feintLady(calib_num=128):
                                 naive=True)
                     mpqco_res.append(v3)
                     
-                with open(f'./variance_study/Clado_Naive_MPQCO_res_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a8_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_opt_no-finetune_after-calib.pkl','wb') as f:
+                with open(f'./variance_study/Clado_Naive_MPQCO_res_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a16_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_optimization.pkl','wb') as f:
                     pickle.dump({'clado_res': clado_res, 'naive_res': naive_res, 'mpqco_res': mpqco_res}, f)
             
 def main():
