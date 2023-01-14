@@ -16,8 +16,8 @@ def load_gradients(file_name):
 
     for name in hm['layer_index']:
         index = hm['layer_index'][name]
-        layer_name = name[:-10]
-        scheme = name[-10:]
+        layer_name = name[:-11]
+        scheme = name[-11:]
         a = hm['Ltilde']
         #print(f'index {index} layer {layer_name} scheme {scheme} Ltilde {a[index,index].item():.6f}')
         index2layerscheme[index] = (layer_name,scheme)
