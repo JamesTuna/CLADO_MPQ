@@ -75,6 +75,7 @@ model_name = "bert-base"
 
 def get_calib_loss(trainer, model, calib_subset):
     if len(calib_data_set) == 0:
+        model.eval()
         calib_dataloader = trainer.get_calib_dataloader(trainer.train_dataset)
         total_loss = 0
         for batch_num, inputs in enumerate(calib_dataloader):
@@ -88,6 +89,7 @@ def get_calib_loss(trainer, model, calib_subset):
                 break
     else:
         total_loss = 0
+        model.eval()
         for inputs in calib_data_set:
             # Prediction step
             loss, logits, labels = trainer.prediction_step(model, inputs, prediction_loss_only=True)
@@ -118,12 +120,11 @@ def recover_perturb(perturb_scheme):
     for layer_name in perturb_scheme:
         with torch.no_grad():
             tar_module = get_module_by_name(torch_mix_model, layer_name)
-            #src_module = get_module_by_name(torch_q_model_8, layer_name)
             src_module = get_module_by_name(torch_model_fp, layer_name)
             tar_module._weight_quantizer = src_module._weight_quantizer
 
 
-def perturb_loss(perturb_scheme, ref_metric, calib_subset, trainer, batch_id, printInfo=True):
+def perturb_loss(perturb_scheme, ref_metric, calib_subset, trainer, batch_id, printInfo=False):
     with torch.no_grad():
         # perturb layers
         perturb(perturb_scheme)
@@ -136,7 +137,6 @@ def perturb_loss(perturb_scheme, ref_metric, calib_subset, trainer, batch_id, pr
             print("batch_id: ", batch_id)
             print("ref_metric: ", ref_metric)
             print("mean_loss: ", mean_loss)
-
 
         # recover layers
         recover_perturb(perturb_scheme)
@@ -154,13 +154,12 @@ def compute_cache_gradients(ref_metric, aw_scheme, calib_num, calib_subset, trai
                         if n == m:
                             if naw == maw:
                                 p = perturb_loss({n: naw}, ref_metric, calib_subset, trainer, batch_num)
-                                print(f'perturb layer {n} to A{naw[0]}W{naw[1]} p={p}')
+                                #print(f'perturb layer {n} to A{naw[0]}W{naw[1]} p={p}')
                             else:
                                 p = 0
 
                         else:
-                            p = 0
-                            #p = perturb_loss({n: naw, m: maw}, ref_metric, calib_subset, trainer, batch_num)
+                            p = perturb_loss({n: naw, m: maw}, ref_metric, calib_subset, trainer, batch_num)
                             #print(f'perturb layer {n} to A{naw[0]}W{naw[1]} and layer {m} to A{maw[0]}W{maw[1]} p={p}')
 
                         cached[(n,m,naw,maw)] = cached[(m,n,maw,naw)] = p
@@ -450,10 +449,15 @@ def feintLady(fp_model, quant_model_8, quant_model_4, quant_model_2, calib_num, 
     global torch_q_model_2
     torch_q_model_2 = deepcopy(quant_model_2)
 
+    for name, module in fp_model.named_modules():
+        if name.endswith("_quantizer"):
+            if module._calibrator is not None:
+                module.disable_quant()
+
     global torch_model_fp
     torch_model_fp = deepcopy(fp_model)
     global torch_mix_model
-    torch_mix_model = deepcopy(quant_model_8)      
+    torch_mix_model = deepcopy(fp_model)      
 
     from collections import OrderedDict
     # 1. record all modules we want to consider
@@ -488,20 +492,19 @@ def feintLady(fp_model, quant_model_8, quant_model_4, quant_model_2, calib_num, 
     
     calib_data_set = []
     
-    '''
+    
     for i in range(start_batch, end_batch, 1):
         file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
         with open(file_name,'rb') as f:
             calib_data_set.append(pickle.load(f))
     
-    estimate_deltaL(calib_data_set, torch_model_fp, start_batch, wbit_choices=[8, 4, 2])'''
+    estimate_deltaL(calib_data_set, torch_model_fp, start_batch, wbit_choices=[8, 4, 2])
 
     for i in range(start_batch, end_batch, 1):
         file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
         with open(file_name,'rb') as f:
             calib_data_set = [ pickle.load(f) ]
         ref_metric = get_calib_loss(trainer, torch_model_fp, calib_subset)
-        print(f"batch is{i}: ", ref_metric)
         compute_cache_gradients(ref_metric, aw_scheme, calib_num, calib_subset, trainer, i)
     
     '''
