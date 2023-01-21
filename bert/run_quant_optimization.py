@@ -90,11 +90,11 @@ def MIQCP_optimize(cached_grad,layer_bitops,layer_size,
 
 def feintLady(calib_num=128):
 
-    with open(f'./variance_study/Ltilde_bert-base/Ltilde_calib{calib_num}_batch0(size8).pkl','rb') as f:
+    with open(f'./clado_mpqco_results/bert-base/Ltilde_bert-base/Ltilde_calib{calib_num}_batch0(size8).pkl','rb') as f:
         hm = pickle.load(f)
     ref_layer_index = hm['layer_index']
 
-    with open('./variance_study/bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl', 'rb') as f:
+    with open('./clado_mpqco_results/bert-base/bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl', 'rb') as f:
         layer_bitops_size = pickle.load(f)
     layer_bitops = layer_bitops_size['layer_bitops']
     layer_size = layer_bitops_size['layer_size']
@@ -110,7 +110,7 @@ def feintLady(calib_num=128):
                 # sample size: n_batch * 8
                 for batch_id in range(n_batch):
                     b = batch_id + n_batch * repeat
-                    with open(f'./variance_study/Ltilde_bert-base/Ltilde_calib{calib_num}_batch{b}(size8).pkl','rb') as f:
+                    with open(f'./clado_mpqco_results/bert-base/Ltilde_bert-base/Ltilde_calib{calib_num}_batch{b}(size8).pkl','rb') as f:
                         hm = pickle.load(f)
                     assert hm['layer_index'] == ref_layer_index
                     batch_Ltildes_clado.append(hm['Ltilde'])
@@ -122,7 +122,7 @@ def feintLady(calib_num=128):
                 s_batch = n_batch * repeat
                 e_batch = n_batch * repeat + n_batch - 1
                 n_smaples = n_batch * 8
-                file_name = f'./variance_study/Ltilde_bert-base/multiple_batches/sample_size{n_smaples}/Ltilde_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
+                file_name = f'./clado_mpqco_results/bert-base/Ltilde_bert-base/multiple_batches/sample_size{n_smaples}/Ltilde_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
                 if not os.path.exists(file_name):
                     with open(file_name, 'wb') as f:
                         pickle.dump({'Ltilde': ref_Ltilde_clado,'layer_index': ref_layer_index}, f)
@@ -132,7 +132,7 @@ def feintLady(calib_num=128):
                 batch_deltaLs_mpqco = []
                 for batch_id in range(n_batch):
                     b = batch_id + n_batch * repeat
-                    with open(f'./variance_study/DeltaL_MPQCO_bert-base/MPQCO_DELTAL_batch{b}(size8).pkl','rb') as f:
+                    with open(f'./clado_mpqco_results/bert-base/DeltaL_MPQCO_bert-base/MPQCO_DELTAL_batch{b}(size8).pkl','rb') as f:
                         hm_mpqco = pickle.load(f)
 
                     deltal = np.zeros(ref_Ltilde_clado.shape)
@@ -146,7 +146,7 @@ def feintLady(calib_num=128):
                 batch_deltaLs_mpqco_np = np.array(batch_deltaLs_mpqco)
                 ref_deltaLs_mpqco = batch_deltaLs_mpqco_np.mean(axis=0)
 
-                file_name = f'./variance_study/DeltaL_MPQCO_bert-base/multiple_batches/sample_size{n_smaples}/DeltaL_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
+                file_name = f'./clado_mpqco_results/bert-base/DeltaL_MPQCO_bert-base/multiple_batches/sample_size{n_smaples}/DeltaL_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
                 if not os.path.exists(file_name):
                     with open(file_name, 'wb') as f:
                         pickle.dump({'DeltaL': ref_deltaLs_mpqco,'layer_index': ref_layer_index}, f)
@@ -182,8 +182,8 @@ def feintLady(calib_num=128):
                                 bitops_bound=np.inf,size_bound=size_bound,
                                 naive=True)
                     mpqco_res.append(v3)
-                    
-                with open(f'./variance_study/Clado_Naive_MPQCO_optimization_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a16_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_optimization.pkl','wb') as f:
+
+                with open(f'./clado_mpqco_results/bert-base/Clado_Naive_MPQCO_optimization_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a16_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_optimization.pkl','wb') as f:
                     pickle.dump({'clado_res': clado_res, 'naive_res': naive_res, 'mpqco_res': mpqco_res}, f)
             
 def main():
