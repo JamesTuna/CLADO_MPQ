@@ -183,7 +183,7 @@ def feintLady(calib_num=128):
                                 naive=True)
                     mpqco_res.append(v3)
                     
-                with open(f'./variance_study/Clado_Naive_MPQCO_res_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a16_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_optimization.pkl','wb') as f:
+                with open(f'./variance_study/Clado_Naive_MPQCO_optimization_bert-base/sample_size{n_smaples}/clado_naive_mpqco_a16_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8_optimization.pkl','wb') as f:
                     pickle.dump({'clado_res': clado_res, 'naive_res': naive_res, 'mpqco_res': mpqco_res}, f)
             
 def main():
