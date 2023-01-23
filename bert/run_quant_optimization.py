@@ -99,8 +99,6 @@ def feintLady(calib_num=128):
     layer_bitops = layer_bitops_size['layer_bitops']
     layer_size = layer_bitops_size['layer_size']
 
-    import pdb
-    pdb.set_trace()
     num_batches = [2, 4, 8, 16, 32, 64, 128, 256]
     for repeat in range(0,5,1):
         for n_batch in num_batches:
