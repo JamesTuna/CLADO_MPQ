@@ -971,10 +971,11 @@ def main():
         quant_trainer.set_default_quantizers(quant_trainer_args) 
     
     elif model_args.do_clado:
-        model_path_checkpoit = "models/calib/bert-base-uncased/percentile_calib"
-        path = model_path + model_path_checkpoit + f"/wfp32_a16-tensor_calib{model_args.calib_num}"
-        quant_trainer_args.aprec = 16
-        quant_trainer.set_default_quantizers(quant_trainer_args)
+        if model_name == "bert-base":
+            model_path_checkpoit_fp32 = "models/fp32/bert-base-uncased"
+        elif model_name == "bert-tiny": #extra 2 epochs fine-tuning for bert-tiny
+            model_path_checkpoit_fp32 = "models/finetuned/prajjwal1/bert-tiny/fp32_final"
+        path = model_path + model_path_checkpoit_fp32
         config = QDQBertConfig.from_pretrained(
             path,
             revision=model_args.model_revision,
