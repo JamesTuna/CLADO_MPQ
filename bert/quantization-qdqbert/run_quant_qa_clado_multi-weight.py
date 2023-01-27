@@ -70,7 +70,7 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/ques
 
 logger = logging.getLogger(__name__)
 
-model_path = "../clado_mpqco_results/"
+model_path = "/scratch/clado_mpqco_results/" 
 model_name = "bert-base"
 
 def get_calib_loss(trainer, model, calib_subset):
@@ -945,7 +945,7 @@ def main():
     #quant_trainer.set_default_quantizers(quant_trainer_args)
 
     
-    if not model_args.do_clado:
+    if not model_args.do_clado:  
         # Load pretrained model and tokenizer
         config = QDQBertConfig.from_pretrained(
             model_args.config_name if model_args.config_name else model_args.model_name_or_path,
@@ -970,7 +970,7 @@ def main():
         )
         quant_trainer.set_default_quantizers(quant_trainer_args) 
     
-    elif model_args.do_clado:
+    elif model_args.do_clado: 
         if model_name == "bert-base":
             model_path_checkpoit_fp32 = "models/fp32/bert-base-uncased"
         elif model_name == "bert-tiny": #extra 2 epochs fine-tuning for bert-tiny
@@ -994,7 +994,7 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-
+        breakpoint()
         if model_name == "bert-base":
             model_path_checkpoit = "models/calib/bert-base-uncased/percentile_calib"
             path = model_path + model_path_checkpoit + f"/w8-channel_a16-tensor_calib{model_args.calib_num}"
