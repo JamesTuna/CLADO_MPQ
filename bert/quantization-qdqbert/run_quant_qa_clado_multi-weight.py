@@ -41,11 +41,11 @@ from transformers import (
     PreTrainedTokenizerFast,
     QDQBertConfig,
     QDQBertForQuestionAnswering,
+    AutoModelForQuestionAnswering,
     TrainingArguments,
     default_data_collator,
     set_seed,
 )
-
 
 from transformers.trainer_utils import SchedulerType, get_last_checkpoint
 from transformers.utils import check_min_version
@@ -1446,23 +1446,26 @@ def main():
         ########
         # import mlreferences as mlref
         # model = mlref.squad_bert_large().model.body.to(device)
-        from transformers import AutoModelForQuestionAnswering
         # model = AutoModelForQuestionAnswering.from_pretrained("csarron/bert-base-uncased-squad-v1")
-        model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased")
-        layer_names = [
-            "attention.self.query",
-            "attention.self.key",
-            "attention.self.value",
-            "attention.output.dense",
-            "intermediate.dense",
-            "output.dense",
-        ]
-        for idx in range(len(model.bert.encoder.layer)):
-            for lname in layer_names:
-                wname = f"model.bert.encoder.layer[{idx}].{lname}.weight"
-                # eval(f"torch.nn.init.xavier_uniform({wname}.data)")
-                eval(f"{wname}.data.fill_(1.)")
+        # model = AutoModelForQuestionAnswering.from_pretrained("jimypbr/bert-base-uncased-squad")
+        # model = AutoModelForQuestionAnswering.from_pretrained("salti/bert-base-multilingual-cased-finetuned-squad")
+        # model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased")
+        # layer_names = [
+        #     "attention.self.query",
+        #     "attention.self.key",
+        #     "attention.self.value",
+        #     "attention.output.dense",
+        #     "intermediate.dense",
+        #     "output.dense",
+        # ]
+        # for idx in range(len(model.bert.encoder.layer)):
+        #     for lname in layer_names:
+        #         wname = f"model.bert.encoder.layer[{idx}].{lname}.weight"
+        #         # eval(f"torch.nn.init.xavier_uniform({wname}.data)")
+        #         eval(f"{wname}.data.fill_(1.)")
         ########
+        torch.save(model, "/mnt/scratch/model_in_do_train.pt")
+        # serialize model
         bsz = 16
         training_args.per_device_train_batch_size=bsz
         temp_trainer = QuestionAnsweringTrainer(
@@ -1472,12 +1475,12 @@ def main():
             eval_dataset=eval_dataset if model_args.do_clado else None,
             eval_examples=eval_examples if model_args.do_clado else None,
             calib_num = model_args.calib_num,
-            tokenizer=tokenizer,
+            tokenizer=AutoTokenizer.from_pretrained("bert-base-uncased"),
             post_process_function=post_processing_function,
             compute_metrics=compute_metrics,
             quant_trainer_args=quant_trainer_args,
         )
-        temp_trainer.train(resume_from_checkpoint=checkpoint)
+        temp_trainer.train(resume_from_checkpoint=None)
         ########
         
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
@@ -1497,6 +1500,29 @@ def main():
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
         quant_trainer.configure_model(trainer.model, quant_trainer_args, eval=True)
+        torch.save(model, "/mnt/scratch/model_in_do_eval.pt")
+
+        ########
+        breakpoint()
+        bsz = 16
+        training_args.per_device_train_batch_size=bsz
+        temp_trainer = QuestionAnsweringTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset.select(range(bsz)),
+            eval_dataset=eval_dataset if model_args.do_clado else None,
+            eval_examples=eval_examples if model_args.do_clado else None,
+            calib_num = model_args.calib_num,
+            tokenizer=AutoTokenizer.from_pretrained("bert-base-uncased", download_mode='force_redownload'),
+            post_process_function=post_processing_function,
+            compute_metrics=compute_metrics,
+            quant_trainer_args=quant_trainer_args,
+        )
+        # temp_trainer.train(resume_from_checkpoint=None)
+        temp_metrics = temp_trainer.evaluate()
+        breakpoint()
+        ########
+
         metrics = trainer.evaluate()
 
         max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
