@@ -70,7 +70,7 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/ques
 
 logger = logging.getLogger(__name__)
 
-model_path = "/scratch/clado_mpqco_results/" 
+model_path = "/homes/sayehs/clado_mpqco_results/" 
 model_name = "bert-base"
 
 def get_calib_loss(trainer, model, calib_subset):
@@ -493,163 +493,163 @@ def feintLady(fp_model, quant_model_8, quant_model_4, quant_model_2, calib_num, 
     calib_data_set = []
     
     
-    for i in range(start_batch, end_batch, 1):
-        file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
-        with open(file_name,'rb') as f:
-            calib_data_set.append(pickle.load(f))
+    # for i in range(start_batch, end_batch, 1):
+    #     file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
+    #     with open(file_name,'rb') as f:
+    #         calib_data_set.append(pickle.load(f))
     
-    estimate_deltaL(calib_data_set, torch_model_fp, start_batch, wbit_choices=[8, 4, 2])
+    # estimate_deltaL(calib_data_set, torch_model_fp, start_batch, wbit_choices=[8, 4, 2])
 
-    for i in range(start_batch, end_batch, 1):
-        file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
-        with open(file_name,'rb') as f:
-            calib_data_set = [ pickle.load(f) ]
-        ref_metric = get_calib_loss(trainer, torch_model_fp, calib_subset)
-        compute_cache_gradients(ref_metric, aw_scheme, calib_num, calib_subset, trainer, i)
+    # for i in range(start_batch, end_batch, 1):
+    #     file_name = model_path + f'Ltilde_MPQCO_dataset/batch{i}(size8).pkl'
+    #     with open(file_name,'rb') as f:
+    #         calib_data_set = [ pickle.load(f) ]
+    #     ref_metric = get_calib_loss(trainer, torch_model_fp, calib_subset)
+    #     compute_cache_gradients(ref_metric, aw_scheme, calib_num, calib_subset, trainer, i)
     
     
-    file_name = model_path + model_name + '/Ltilde_' + model_name + f'/Ltilde_calib{calib_num}_batch0(size8).pkl'
-    with open(file_name,'rb') as f:
-        hm = pickle.load(f)
-    ref_layer_index = hm['layer_index']
+    # file_name = model_path + model_name + '/Ltilde_' + model_name + f'/Ltilde_calib{calib_num}_batch0(size8).pkl'
+    # with open(file_name,'rb') as f:
+    #     hm = pickle.load(f)
+    # ref_layer_index = hm['layer_index']
 
-    num_batches = [2, 4, 8, 16, 32, 64, 128, 256]
-    for repeat in range(0,5,1):
-        for n_batch in num_batches:
-            if model_name == "bert-base" and (repeat >= 3 and n_batch == 256):
-                continue
-            else:    
-                batch_Ltildes_clado = []
-                # sample size: n_batch * 8
-                for batch_id in range(n_batch):
-                    b = batch_id + n_batch * repeat
-                    file_name = model_path + model_name + '/Ltilde_' + model_name + f'/Ltilde_calib{calib_num}_batch{b}(size8).pkl'
-                    with open(file_name,'rb') as f:
-                        hm = pickle.load(f)
-                    assert hm['layer_index'] == ref_layer_index
-                    batch_Ltildes_clado.append(hm['Ltilde'])
+    # num_batches = [2, 4, 8, 16, 32, 64, 128, 256]
+    # for repeat in range(0,5,1):
+        # for n_batch in num_batches:
+        #     if model_name == "bert-base" and (repeat >= 3 and n_batch == 256):
+        #         continue
+        #     else:    
+        #         batch_Ltildes_clado = []
+        #         # sample size: n_batch * 8
+        #         for batch_id in range(n_batch):
+        #             b = batch_id + n_batch * repeat
+        #             file_name = model_path + model_name + '/Ltilde_' + model_name + f'/Ltilde_calib{calib_num}_batch{b}(size8).pkl'
+        #             with open(file_name,'rb') as f:
+        #                 hm = pickle.load(f)
+        #             assert hm['layer_index'] == ref_layer_index
+        #             batch_Ltildes_clado.append(hm['Ltilde'])
 
-                assert len(batch_Ltildes_clado) == n_batch
-                batch_Ltildes_clado_np = np.array(batch_Ltildes_clado)
-                ref_Ltilde_clado = batch_Ltildes_clado_np.mean(axis=0)
+        #         assert len(batch_Ltildes_clado) == n_batch
+        #         batch_Ltildes_clado_np = np.array(batch_Ltildes_clado)
+        #         ref_Ltilde_clado = batch_Ltildes_clado_np.mean(axis=0)
 
-                s_batch = n_batch * repeat
-                e_batch = n_batch * repeat + n_batch - 1
-                n_smaples = n_batch * 8
-                file_name = model_path + model_name + '/Ltilde_' + model_name + f'/multiple_batches/sample_size{n_smaples}/Ltilde_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
-                if not os.path.exists(file_name):
-                    with open(file_name, 'wb') as f:
-                        pickle.dump({'Ltilde': ref_Ltilde_clado,'layer_index': ref_layer_index}, f)
+        #         s_batch = n_batch * repeat
+        #         e_batch = n_batch * repeat + n_batch - 1
+        #         n_smaples = n_batch * 8
+        #         file_name = model_path + model_name + '/Ltilde_' + model_name + f'/multiple_batches/sample_size{n_smaples}/Ltilde_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
+        #         if not os.path.exists(file_name):
+        #             with open(file_name, 'wb') as f:
+        #                 pickle.dump({'Ltilde': ref_Ltilde_clado,'layer_index': ref_layer_index}, f)
                 
-                hm, cached_grad, index2layerscheme = load_gradients(file_name)
+        #         hm, cached_grad, index2layerscheme = load_gradients(file_name)
 
-                batch_deltaLs_mpqco = []
-                for batch_id in range(n_batch):
-                    b = batch_id + n_batch * repeat
-                    file_name = model_path + model_name + '/DeltaL_MPQCO_' + model_name + f'/MPQCO_DELTAL_batch{b}(size8).pkl'
-                    with open(file_name,'rb') as f:
-                        hm_mpqco = pickle.load(f)
+        #         batch_deltaLs_mpqco = []
+        #         for batch_id in range(n_batch):
+        #             b = batch_id + n_batch * repeat
+        #             file_name = model_path + model_name + '/DeltaL_MPQCO_' + model_name + f'/MPQCO_DELTAL_batch{b}(size8).pkl'
+        #             with open(file_name,'rb') as f:
+        #                 hm_mpqco = pickle.load(f)
 
-                    deltal = np.zeros(ref_Ltilde_clado.shape)
+        #             deltal = np.zeros(ref_Ltilde_clado.shape)
 
-                    for layer_id in range(len(index2layerscheme)):
-                        layer_name, scheme = index2layerscheme[layer_id]
-                        wbit = eval(scheme[:-4])[1]
-                        deltal[layer_id,layer_id] = hm_mpqco[layer_name][wbit]
-                    batch_deltaLs_mpqco.append(deltal)
+        #             for layer_id in range(len(index2layerscheme)):
+        #                 layer_name, scheme = index2layerscheme[layer_id]
+        #                 wbit = eval(scheme[:-4])[1]
+        #                 deltal[layer_id,layer_id] = hm_mpqco[layer_name][wbit]
+        #             batch_deltaLs_mpqco.append(deltal)
                 
-                batch_deltaLs_mpqco_np = np.array(batch_deltaLs_mpqco)
-                ref_deltaLs_mpqco = batch_deltaLs_mpqco_np.mean(axis=0)
+        #         batch_deltaLs_mpqco_np = np.array(batch_deltaLs_mpqco)
+        #         ref_deltaLs_mpqco = batch_deltaLs_mpqco_np.mean(axis=0)
 
-                file_name = model_path + model_name + '/DeltaL_MPQCO_' + model_name + f'/multiple_batches/sample_size{n_smaples}/DeltaL_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
-                if not os.path.exists(file_name):
-                    with open(file_name, 'wb') as f:
-                        pickle.dump({'DeltaL': ref_deltaLs_mpqco,'layer_index': ref_layer_index}, f)
+        #         file_name = model_path + model_name + '/DeltaL_MPQCO_' + model_name + f'/multiple_batches/sample_size{n_smaples}/DeltaL_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
+        #         if not os.path.exists(file_name):
+        #             with open(file_name, 'wb') as f:
+        #                 pickle.dump({'DeltaL': ref_deltaLs_mpqco,'layer_index': ref_layer_index}, f)
 
-                L = hm['Ltilde'].shape[0]
+        #         L = hm['Ltilde'].shape[0]
 
-                if not os.path.exists('bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl'):
-                    layer_size, layer_bitops = get_layer_size_bitops(hm, index2layerscheme)
-                    with open('bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl', 'wb') as f:
-                        pickle.dump({'layer_size': layer_size, 'layer_bitops': layer_bitops}, f)     
-                layer_size, layer_bitops = get_layer_size_bitops(hm, index2layerscheme)
+        #         if not os.path.exists('bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl'):
+        #             layer_size, layer_bitops = get_layer_size_bitops(hm, index2layerscheme)
+        #             with open('bert-base_layer-size_layer-bitops_A16-W8-4-2.pkl', 'wb') as f:
+        #                 pickle.dump({'layer_size': layer_size, 'layer_bitops': layer_bitops}, f)     
+        #         layer_size, layer_bitops = get_layer_size_bitops(hm, index2layerscheme)
 
-                # random quantization of weights
-                #rand_quant_res = []
-                #rand_dim = L // len(aw_scheme)
-                #for _ in range(200):
-                #    rand_decision = np.eye(len(aw_scheme))[np.random.choice(len(aw_scheme), rand_dim)].flatten()
-                #    v1 = torch.Tensor(rand_decision)
-                #    perf_test, size, bitops, MPQ_decision = evaluate_decision(v1, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer) 
-                #    rand_quant_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
-                #with open(f'rand_quant_a{acc_prec}_w8-4-2_calib{calib_num}.pkl','wb') as f:
-                #    pickle.dump({'rand_quant_res': rand_quant_res}, f)
-                '''
-                clado_res, naive_res, mpqco_res = [], [], []
-                # bert tiny: np.linspace(0.0939,0.40,30)
-                # bert base: np.linspace(20.2505, 81.05, 30)
-                size_bounds = np.linspace(20.2505, 81.05, 30) if model_name == "bert-base" else np.linspace(0.0939,0.40,30)
-                if model_name == "bert-base":
-                    file_path = model_path + model_name + f'/Clado_Naive_MPQCO_optimal_decisions/sample_size{n_smaples}/'
-                    file_name = file_path + f'clado_naive_mpqco_a16_w8-4-2_calib128_batches_{s_batch}-{e_batch}_bs8_optimization.pkl'
-                    with open(file_name,'rb') as f:
-                        decesions = pickle.load(f)
-                    clado_dec = decesions['clado_res']
-                    naive_dec = decesions['naive_res']
-                    mpqco_dec = decesions['mpqco_res']    
-                    assert len(size_bounds) == len(clado_dec)
+        #         # random quantization of weights
+        #         #rand_quant_res = []
+        #         #rand_dim = L // len(aw_scheme)
+        #         #for _ in range(200):
+        #         #    rand_decision = np.eye(len(aw_scheme))[np.random.choice(len(aw_scheme), rand_dim)].flatten()
+        #         #    v1 = torch.Tensor(rand_decision)
+        #         #    perf_test, size, bitops, MPQ_decision = evaluate_decision(v1, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer) 
+        #         #    rand_quant_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
+        #         #with open(f'rand_quant_a{acc_prec}_w8-4-2_calib{calib_num}.pkl','wb') as f:
+        #         #    pickle.dump({'rand_quant_res': rand_quant_res}, f)
+        #         '''
+        #         clado_res, naive_res, mpqco_res = [], [], []
+        #         # bert tiny: np.linspace(0.0939,0.40,30)
+        #         # bert base: np.linspace(20.2505, 81.05, 30)
+        #         size_bounds = np.linspace(20.2505, 81.05, 30) if model_name == "bert-base" else np.linspace(0.0939,0.40,30)
+        #         if model_name == "bert-base":
+        #             file_path = model_path + model_name + f'/Clado_Naive_MPQCO_optimal_decisions/sample_size{n_smaples}/'
+        #             file_name = file_path + f'clado_naive_mpqco_a16_w8-4-2_calib128_batches_{s_batch}-{e_batch}_bs8_optimization.pkl'
+        #             with open(file_name,'rb') as f:
+        #                 decesions = pickle.load(f)
+        #             clado_dec = decesions['clado_res']
+        #             naive_dec = decesions['naive_res']
+        #             mpqco_dec = decesions['mpqco_res']    
+        #             assert len(size_bounds) == len(clado_dec)
 
-                for i, size_bound in enumerate(size_bounds):
-                    print(f'Set size bound to {size_bound} MB')
-                    #clado
-                    if model_name == "bert-tiny":
-                        v1 = MIQCP_optimize(cached_grad=cached_grad,
-                                    layer_bitops=layer_bitops,
-                                    layer_size=layer_size,
-                                    schemes_per_layer=3,
-                                    bitops_bound=np.inf,size_bound=size_bound,
-                                    naive=False)
-                        v1 = torch.Tensor(v1.value)            
-                    else:  # read optimization decision from file
-                        v1 = torch.Tensor(clado_dec[i]._value) 
+        #         for i, size_bound in enumerate(size_bounds):
+        #             print(f'Set size bound to {size_bound} MB')
+        #             #clado
+        #             if model_name == "bert-tiny":
+        #                 v1 = MIQCP_optimize(cached_grad=cached_grad,
+        #                             layer_bitops=layer_bitops,
+        #                             layer_size=layer_size,
+        #                             schemes_per_layer=3,
+        #                             bitops_bound=np.inf,size_bound=size_bound,
+        #                             naive=False)
+        #                 v1 = torch.Tensor(v1.value)            
+        #             else:  # read optimization decision from file
+        #                 v1 = torch.Tensor(clado_dec[i]._value) 
 
-                    perf_test, size, bitops, MPQ_decision = evaluate_decision(v1, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
-                    clado_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))    
+        #             perf_test, size, bitops, MPQ_decision = evaluate_decision(v1, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
+        #             clado_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))    
                     
-                    #naive
-                    if model_name == "bert-tiny":
-                        v2 = MIQCP_optimize(cached_grad=cached_grad,
-                                    layer_bitops=layer_bitops,
-                                    layer_size=layer_size,
-                                    schemes_per_layer=3,
-                                    bitops_bound=np.inf,size_bound=size_bound,
-                                    naive=True)
-                        v2 = torch.Tensor(v2.value)            
-                    else:  # read optimization decision from file      
-                        v2 = torch.Tensor(naive_dec[i]._value)
+        #             #naive
+        #             if model_name == "bert-tiny":
+        #                 v2 = MIQCP_optimize(cached_grad=cached_grad,
+        #                             layer_bitops=layer_bitops,
+        #                             layer_size=layer_size,
+        #                             schemes_per_layer=3,
+        #                             bitops_bound=np.inf,size_bound=size_bound,
+        #                             naive=True)
+        #                 v2 = torch.Tensor(v2.value)            
+        #             else:  # read optimization decision from file      
+        #                 v2 = torch.Tensor(naive_dec[i]._value)
                     
-                    perf_test, size, bitops, MPQ_decision = evaluate_decision(v2, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
-                    naive_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
+        #             perf_test, size, bitops, MPQ_decision = evaluate_decision(v2, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
+        #             naive_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
 
-                    #mpqco
-                    if model_name == "bert-tiny":
-                        v3 = MIQCP_optimize(cached_grad=ref_deltaLs_mpqco,
-                                    layer_bitops=layer_bitops,
-                                    layer_size=layer_size,
-                                    schemes_per_layer=3,
-                                    bitops_bound=np.inf,size_bound=size_bound,
-                                    naive=True)
-                        v3 = torch.Tensor(v3.value)            
-                    else:  # read optimization decision from file
-                        v3 = torch.Tensor(mpqco_dec[i]._value)
+        #             #mpqco
+        #             if model_name == "bert-tiny":
+        #                 v3 = MIQCP_optimize(cached_grad=ref_deltaLs_mpqco,
+        #                             layer_bitops=layer_bitops,
+        #                             layer_size=layer_size,
+        #                             schemes_per_layer=3,
+        #                             bitops_bound=np.inf,size_bound=size_bound,
+        #                             naive=True)
+        #                 v3 = torch.Tensor(v3.value)            
+        #             else:  # read optimization decision from file
+        #                 v3 = torch.Tensor(mpqco_dec[i]._value)
                     
-                    perf_test, size, bitops, MPQ_decision = evaluate_decision(v3, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
-                    mpqco_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
+        #             perf_test, size, bitops, MPQ_decision = evaluate_decision(v3, L, aw_scheme, layer_size, layer_bitops, index2layerscheme, calib_subset, trainer)
+        #             mpqco_res.append((perf_test['eval_f1'], perf_test['eval_exact_match'], perf_test['eval_loss'], size, bitops, MPQ_decision))
 
-                acc_prec = 8 if model_name == "bert-tiny" else 16
-                file_name = model_path + model_name + f'/Clado_Naive_MPQCO_res/sample_size{n_smaples}/clado_naive_mpqco_a{acc_prec}_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
-                with open(file_name,'wb') as f:
-                    pickle.dump({'clado_res': clado_res, 'naive_res': naive_res, 'mpqco_res': mpqco_res}, f)'''
+        #         acc_prec = 8 if model_name == "bert-tiny" else 16
+        #         file_name = model_path + model_name + f'/Clado_Naive_MPQCO_res/sample_size{n_smaples}/clado_naive_mpqco_a{acc_prec}_w8-4-2_calib{calib_num}_batches_{s_batch}-{e_batch}_bs8.pkl'
+        #         with open(file_name,'wb') as f:
+        #             pickle.dump({'clado_res': clado_res, 'naive_res': naive_res, 'mpqco_res': mpqco_res}, f)'''
             
 
 @dataclass
@@ -969,7 +969,7 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
         quant_trainer.set_default_quantizers(quant_trainer_args) 
-    
+
     elif model_args.do_clado: 
         if model_name == "bert-base":
             model_path_checkpoit_fp32 = "models/fp32/bert-base-uncased"
@@ -994,7 +994,6 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-        breakpoint()
         if model_name == "bert-base":
             model_path_checkpoit = "models/calib/bert-base-uncased/percentile_calib"
             path = model_path + model_path_checkpoit + f"/w8-channel_a16-tensor_calib{model_args.calib_num}"
@@ -1443,7 +1442,44 @@ def main():
             checkpoint = last_checkpoint
 
         quant_trainer.configure_model(trainer.model, quant_trainer_args)
-
+        
+        ########
+        # import mlreferences as mlref
+        # model = mlref.squad_bert_large().model.body.to(device)
+        from transformers import AutoModelForQuestionAnswering
+        # model = AutoModelForQuestionAnswering.from_pretrained("csarron/bert-base-uncased-squad-v1")
+        model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased")
+        layer_names = [
+            "attention.self.query",
+            "attention.self.key",
+            "attention.self.value",
+            "attention.output.dense",
+            "intermediate.dense",
+            "output.dense",
+        ]
+        for idx in range(len(model.bert.encoder.layer)):
+            for lname in layer_names:
+                wname = f"model.bert.encoder.layer[{idx}].{lname}.weight"
+                # eval(f"torch.nn.init.xavier_uniform({wname}.data)")
+                eval(f"{wname}.data.fill_(1.)")
+        ########
+        bsz = 16
+        training_args.per_device_train_batch_size=bsz
+        temp_trainer = QuestionAnsweringTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset.select(range(bsz)),
+            eval_dataset=eval_dataset if model_args.do_clado else None,
+            eval_examples=eval_examples if model_args.do_clado else None,
+            calib_num = model_args.calib_num,
+            tokenizer=tokenizer,
+            post_process_function=post_processing_function,
+            compute_metrics=compute_metrics,
+            quant_trainer_args=quant_trainer_args,
+        )
+        temp_trainer.train(resume_from_checkpoint=checkpoint)
+        ########
+        
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
         trainer.save_model()  # Saves the tokenizer too for easy upload
 
