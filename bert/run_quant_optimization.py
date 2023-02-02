@@ -153,7 +153,8 @@ def feintLady(calib_num=128):
                 L = hm['Ltilde'].shape[0]
 
                 clado_res, naive_res, mpqco_res = [], [], []
-                for size_bound in np.linspace(20.2505, 81.05, 30): 
+                size_bounds = [20.2505, 22.50055556, 24.75061111, 27.00066667, 29.25072222, 31.50077778, 33.75083333, 36.00088889, 38.25094444, 40.501, 43.39735714, 46.29371429, 49.19007143, 52.08642857, 54.98278571, 57.87914286, 60.7755, 63.67185714, 66.56821429, 69.46457143, 72.36092857, 75.25728571, 78.15364286, 81.05]
+                for size_bound in size_bounds: 
                     print(f'Set size bound to {size_bound} MB')
                     #clado
                     v1 = MIQCP_optimize(cached_grad=cached_grad,
