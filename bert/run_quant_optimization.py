@@ -104,7 +104,7 @@ def feintLady(calib_num=128):
 
 
     num_batches = [2, 4, 8, 16, 32, 64, 128, 256]
-    for repeat in range(0,1,1):
+    for repeat in range(0,5,1):
         for n_batch in num_batches:
             if (repeat >= 3 and n_batch == 256):
                 continue
