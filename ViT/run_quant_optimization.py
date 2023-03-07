@@ -12,10 +12,10 @@ from utils import (
 
 def feintLady():
 
-    proxy = torch.load("./cached_files/clado_proxy.pt")
-    layers_to_quant = torch.load("./cached_files/layers_to_quant.pt")
-    layer_size = torch.load("./cached_files/layer_size.pt")
-    layer_bitops = torch.load("./cached_files/layer_bitops.pt")
+    proxy = torch.load("./intermediate_files/clado_proxy.pt")
+    layers_to_quant = torch.load("./intermediate_files/layers_to_quant.pt")
+    layer_size = torch.load("./intermediate_files/layer_size.pt")
+    layer_bitops = torch.load("./intermediate_files/layer_bitops.pt")
 
     proxy_matrix, _ = clado_proxy_post_process(
         proxy=proxy,
