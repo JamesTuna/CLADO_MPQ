@@ -7,8 +7,8 @@ format_space = [
         "FP32",
         "FP32",
     ),  # calibration can still be applied but does nothing on non-integer formats
-    ("INT8", "INT8"),
     ("INT8", "INT4"),
+    ("INT8", "INT3"),
     ("INT8", "INT2"),
 ] 
 
@@ -25,6 +25,13 @@ def clado_proxy_post_process(
         for format in format_space[1:]:
             layer_config_to_index[(layer, format)] = index
             index += 1
+
+    # #take average over samples
+    # for n in layers_to_quant:
+    #     for m in layers_to_quant:
+    #         for naw_index, naw in enumerate(format_space[1:]):
+    #             for maw_index, maw in enumerate(format_space[1:]):
+    #                 proxy[(n, m, naw_index, maw_index)] = proxy[(n, m, naw_index, maw_index)].mean()
 
     # convert the proxy dictionary to a 2-D proxy matrix
     proxy_matrix = np.zeros((index, index))
