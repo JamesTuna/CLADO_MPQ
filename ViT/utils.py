@@ -1,4 +1,4 @@
-import torch
+import torch,time
 import numpy as np
 import cvxpy as cp
 
@@ -93,11 +93,16 @@ def qip_optimizer(
 
     prob = cp.Problem(objective,constraints)
     #solver options: ['ECOS', 'ECOS_BB', 'GUROBI', 'OSQP', 'SCIP', 'SCIPY', 'SCS']
-    prob.solve(solver='GUROBI', verbose=False)
+    sol_stime = time.time()
+    prob.solve(solver='GUROBI', verbose=False,TimeLimit=600) # 10minutes to solve
+    sol_etime = time.time()
+    sec_to_solve = sol_etime-sol_stime
     
     # Print result.
     if printInfo:
-        print("The optimal value is: ", prob.value)
+        print("Solution status: ", prob.status)
+        print(f"Time to solve: {sec_to_solve:.2f}seconds")
+        print("Best value found by solution: ", prob.value)
         print("The solution is:\n", x.value)
     
     return x, prob.value
