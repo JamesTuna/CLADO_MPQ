@@ -94,7 +94,7 @@ def qip_optimizer(
     prob = cp.Problem(objective,constraints)
     #solver options: ['ECOS', 'ECOS_BB', 'GUROBI', 'OSQP', 'SCIP', 'SCIPY', 'SCS']
     sol_stime = time.time()
-    prob.solve(solver='GUROBI', verbose=False,TimeLimit=600) # 10minutes to solve
+    prob.solve(solver='GUROBI', verbose=False,TimeLimit=1800) # 30minutes to solve
     sol_etime = time.time()
     sec_to_solve = sol_etime-sol_stime
     
