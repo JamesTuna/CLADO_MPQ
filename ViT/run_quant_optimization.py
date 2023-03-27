@@ -52,8 +52,7 @@ def feintLady(n_samples=1024):
             pickle.dump({'clado_objectives': clado_objective}, f)
 
 def main():
-    feintLady(n_samples=1024)
-    feintLady(n_samples=2048)
+    feintLady(n_samples="2048_14-32_10240")
 
 
 if __name__ == "__main__":
