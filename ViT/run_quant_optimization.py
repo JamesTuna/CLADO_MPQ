@@ -10,9 +10,8 @@ from utils import (
     qip_optimizer
 )
 
-def feintLady(n_samples=1024):
+def feintLady(n_samples=1024, num_runs=5):
 
-    num_runs = 5
     for run in range(num_runs):
         proxy = torch.load(f"./clado_mpqco_results/CLADO/Clado_proxy/sample_size{n_samples}/clado_proxy_run{run}.pt")
         layers_to_quant = torch.load("./intermediate_files/layers_to_quant.pt")
@@ -52,7 +51,9 @@ def feintLady(n_samples=1024):
             pickle.dump({'clado_objectives': clado_objective}, f)
 
 def main():
-    feintLady(n_samples="2048_14-32_10240")
+    feintLady(n_samples=4096, num_runs=2)
+    feintLady(n_samples=6144, num_runs=1)
+    feintLady(n_samples=8192, num_runs=1)
 
 
 if __name__ == "__main__":
